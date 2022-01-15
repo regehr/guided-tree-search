@@ -1,13 +1,26 @@
 class Generator {
+public:
+  /*
+   * return a number in 0..n
+   * take file and line as arguments?
+   */
+  int choose(int n);
 
-  // go back to top of the tree
-  void startTraversal();
+  /*
+   * shorthand for choose(2)
+   * take file and line as arguments?
+   */
+  bool flip() {
+    return choose(2);
+  }
 
-  int choose(int n); // report file and line?
+  /*
+   * finish a traversal, the next choose() will start at the top of
+   * the tree
+   */
+  void done();
 
-  // shorthand for choose(2)
-  bool flip(); // report file and line?
-
-  // TODO perhaps add amethod for making a random choice that won't
-  // affect future decisions, we can save space there
+  // TODO add a method for making a random choice that won't affect
+  // future decisions, we can save space there; this is just an
+  // optimization though
 };
