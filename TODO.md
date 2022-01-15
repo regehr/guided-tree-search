@@ -7,3 +7,7 @@
   non-trivial situations
 
 - plug this into Csmith and YARPGen and see what happens
+
+- work out how to take hints from the user about things like desirable
+  patterns, subtrees that are likely to behave similarly every time we
+  reach them, etc.
