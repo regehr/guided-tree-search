@@ -18,7 +18,7 @@ int main() {
         results[i]++;
         break;
       }
-      if (i == N-1) {
+      if (i == N - 1) {
         results[N]++;
         break;
       }
@@ -27,7 +27,7 @@ int main() {
   }
 
   // print stats
-  
+
   std::cout << "Done.\n";
   return 0;
 }

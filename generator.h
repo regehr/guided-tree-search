@@ -20,7 +20,7 @@ public:
 
   inline int choose_nofork(int n);
   inline int choose_noeffect(int n);
-  
+
   /*
    * shorthand for choose(2)
    */
@@ -34,16 +34,12 @@ public:
   // choose() functions
 };
 
-void Generator::start() {
-}
+void Generator::start() {}
 
-int Generator::choose(int n) {
-}
+int Generator::choose(int n) {}
 
-bool Generator::flip() {
-  return choose(2);
-}
+bool Generator::flip() { return choose(2); }
 
-}
+} // namespace uniform
 
 #endif
