@@ -1,6 +1,6 @@
 # PROBLEM STATEMENT
 
-When write a randomized generator for some file format in a
+When writing a randomized generator for some file format in a
 general-purpose programming language, we can view the resulting
 program as embedding a decision tree. When there are interesting
 validity constraints on the generated file format, the decision trees
@@ -41,14 +41,14 @@ generated. Uniform random choices will, of course, cause T1 to be
 generated with probability 1/2 whereas T7 and T8 will appear with
 probability 1/128. In realistic situations, we have observed that
 there are interesting outputs that are effectively impossible to
-generate.
+generate, due to this effect.
 
 The problem statement, then, is to automatically adjust probabilities
 in such a way that T1..T8 are reached with uniform probability. Of
 course uniform probabilities are unlikely to be the optimal ones, but
-our hypothesis is that uniform sample is, in general, much better than
-unknown, difficult-to-fix biases. You should view uniform
-probabilities as only a starting point for further tuning.
+our hypothesis is that uniform sampling is, in general, a much better
+problem to have than unknown, difficult-to-fix biases. You should view
+uniform probabilities as only a starting point for further tuning.
 
 For certain well-structured special cases, such as generating strings
 from a regular grammar, algorithms exist to generate strings with
@@ -57,7 +57,7 @@ no such algorithm can exist. The proof of this is handwavy, but
 observe that an arbitrary-sized subtree can lurk past every unexplored
 edge in the decision tree. Without prior knowledge of the tree shape,
 there is simply no way to know which unexplored branches lead to one
-or two leaves and which lead to a near-infinite number of leaves.
+or two leaves and which lead to a vast number of leaves.
 
 ## A Solution
 
@@ -101,7 +101,7 @@ subtree, particularly those that contain unexplored branches, so that
 we can bias subsequent tree traversals towards parts of the tree that
 appear to require the most exploration. In this fashion we can,
 hopefully, approach the desired distribution of generated outputs,
-after performing a potentially large number of tree traversals.
+after performing a suitably large number of tree traversals.
 
 # GOALS
 
