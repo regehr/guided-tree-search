@@ -1,12 +1,40 @@
 #ifndef UNIFORM_GENERATOR_H_
 #define UNIFORM_GENERATOR_H_
 
+#include <cassert>
+#include <memory>
 #include <random>
+#include <vector>
 
 namespace uniform {
 
+// TODO put everything except Generator into a "details" namespace
+
+struct Node;
+
+struct Child {
+  std::unique_ptr<Node> Ptr;
+  long Weight;
+};
+
+struct Node {
+  std::vector<Child> Children;
+  std::unique_ptr<Node> Parent;
+};
+
 class Generator {
+  std::unique_ptr<Node> Root;
+  Node *Current;
+  const long DefaultWeight = 10;
+  std::random_device RD;
+  std::unique_ptr<std::default_random_engine> Rand;
+
 public:
+  Generator() {
+    auto seed = RD();
+    Rand = std::make_unique<std::default_random_engine>(seed);
+  }
+
   /*
    * start a traversal (terminating the one that was in progress, if
    * any); the next choose() will be at the top of the tree
@@ -18,7 +46,17 @@ public:
    */
   inline int choose(int n);
 
+  /*
+   * adds n leaves but doesn't branch the tree; use this when this choice
+   * does not affect any subsequent choices
+   */
   inline int choose_nofork(int n);
+
+  /*
+   * generate a random integer without adding any leaves to the tree;
+   * this this to generate things like strings and integer constants
+   * where we don't want to sample the whole space
+   */
   inline int choose_noeffect(int n);
 
   /*
@@ -26,17 +64,18 @@ public:
    */
   inline bool flip();
 
-  // TODO add a method for making a random choice that won't affect
-  // future decisions, we can save space there; this is just an
-  // optimization though
-
   // TODO maybe take file name and line number as arguments to
   // choose() functions
 };
 
-void Generator::start() {}
+void Generator::start() {
+  Current = Root;
+}
 
-int Generator::choose(int n) {}
+int Generator::choose(int n) {
+  // FIXME avoid bias
+  return (*Rand)() % n;
+}
 
 bool Generator::flip() { return choose(2); }
 

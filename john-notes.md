@@ -1,6 +1,14 @@
 Maciver simple impl   
   https://gist.github.com/DRMacIver/eb0e151834dd85f23659f6c2040fd6c9
 
+D. E. Knuth. Estimating the efficiency of backtrack
+programs. Mathematics of Computation, 29(129):121–136, 1975.
+
+P. C. Chen. Heuristic sampling: A method for predicting the
+performance of tree searching programs. SIAM Journal on Computing,
+21(2):295–315, 1992.
+  https://sci-hubtw.hkvisa.net/10.1137/0221022
+
 hard thing: how to treat multiple occurrences of the same program point in the tree
   extreme 1: they're distinct
   extreme 2: they're all the same
