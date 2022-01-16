@@ -66,10 +66,13 @@ public:
 
   // TODO maybe take file name and line number as arguments to
   // choose() functions
+
+  // TODO support rejection of samples:
+  // https://github.com/regehr/uniform-tree-sampling/issues/2
 };
 
 void Generator::start() {
-  Current = Root;
+  Current = &*Root;
 }
 
 int Generator::choose(int n) {
@@ -78,6 +81,29 @@ int Generator::choose(int n) {
 }
 
 bool Generator::flip() { return choose(2); }
+
+/*
+ * the point of this class is to offer the naive alternative to the
+ * smarter generator, as a basis for comparison 
+ */
+class NaiveGenerator {
+  std::random_device RD;
+  std::unique_ptr<std::default_random_engine> Rand;
+
+public:
+  NaiveGenerator() {
+    auto seed = RD();
+    Rand = std::make_unique<std::default_random_engine>(seed);
+  }
+  inline void start() {}
+  inline int choose(int n) {
+    // FIXME avoid bias
+    return (*Rand)() % n;
+  }
+  inline int choose_nofork(int n);
+  inline int choose_noeffect(int n);
+  inline bool flip() { return choose(2); }
+};
 
 } // namespace uniform
 
