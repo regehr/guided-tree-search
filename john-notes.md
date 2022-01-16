@@ -11,6 +11,8 @@ performance of tree searching programs. SIAM Journal on Computing,
 
 https://www.carolemieux.com/rlcheck_preprint.pdf
 
+https://www.ece.iastate.edu/snt/files/2019/01/sss-edbt-2019.pdf
+
 hard thing: how to treat multiple occurrences of the same program point in the tree
   extreme 1: they're distinct
   extreme 2: they're all the same
