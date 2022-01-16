@@ -2,7 +2,7 @@
 
 # GOALS
 
-- plug into unmodified generators with nearly zero effort
+- header-only, plugs into existing generators with little effort
 
 - for small decision trees, rapidly converge to the desired behavior
 
@@ -26,3 +26,5 @@
 - work out how to take hints from the user about things like desirable
   patterns, subtrees that are likely to behave similarly every time we
   reach them, etc.
+
+- work out how to take feedback about good/bad paths into account
