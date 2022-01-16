@@ -9,7 +9,7 @@ int main() {
   const int N = 25;
 
   std::vector<int> results;
-  Generator g;
+  uniform::Generator g;
 
   for (int rep = 0; rep < REPS; ++rep) {
     g.start();
