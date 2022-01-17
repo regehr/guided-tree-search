@@ -103,6 +103,10 @@ appear to require the most exploration. In this fashion we can,
 hopefully, approach the desired distribution of generated outputs,
 after performing a suitably large number of tree traversals.
 
+## Non-Solutions
+
+TODO explain why reservoir sampling and MCTS aren't solutions for us
+
 # GOALS
 
 - header-only, plugs into existing generators with little effort
