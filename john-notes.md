@@ -1,6 +1,11 @@
 Maciver simple impl   
   https://gist.github.com/DRMacIver/eb0e151834dd85f23659f6c2040fd6c9
 
+DFS vs BFS issues will be hard to solve
+
+problem with mark and recapture: probability of recapture is very low
+ (and we don't want it to happen anyway)
+
 D. E. Knuth. Estimating the efficiency of backtrack
 programs. Mathematics of Computation, 29(129):121–136, 1975.
 
