@@ -6,26 +6,24 @@
 #include <random>
 #include <vector>
 
+#include "priq.h"
+
 namespace uniform {
 
 // TODO put everything except Generator into a "details" namespace
 
-struct Node;
-
-struct Child {
-  std::unique_ptr<Node> Ptr;
-  long Weight;
-};
-
-struct Node {
-  std::vector<Child> Children;
-  std::unique_ptr<Node> Parent;
-};
+// TODO once things are working, we can play allocator games to
+// substantially reduce memory use
 
 class Generator {
+  struct Node {
+    Node *Parent;
+    std::vector<std::unique_ptr<Node>> Children;
+  };
+
   std::unique_ptr<Node> Root;
   Node *Current;
-  const long DefaultWeight = 10;
+  int LastChoice = -1;
   std::random_device RD;
   std::unique_ptr<std::default_random_engine> Rand;
 
@@ -72,12 +70,31 @@ public:
 };
 
 void Generator::start() {
+  // pick highest priority node off the priority Q
+  // walk up to the root, saving the path to get back to this node
   Current = &*Root;
 }
 
-int Generator::choose(int n) {
-  // FIXME avoid bias
-  return (*Rand)() % n;
+int Generator::choose(int Choices) {
+  // we're either following a predetermined path, or we're past that
+  // and just making random choices
+  if (false) { // is there something in the path?
+    // node transition
+    // check that number of choices hasn't changed
+    // return the predetermined choice
+  } else {
+    auto N = std::make_unique<Node>();
+    N->Parent = Current;
+    N->Children.resize(Choices);
+    Current->Children.at(LastChoice) = std::move(N);
+    Current = &*N;
+    // TODO avoid bias
+    int Choice = (*Rand)() % Choices;
+    LastChoice = Choice;
+    return Choice;
+    // TODO add this node to the priority queue at its depth
+  }
+  
 }
 
 bool Generator::flip() { return choose(2); }
