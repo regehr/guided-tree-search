@@ -12,6 +12,9 @@ namespace uniform {
 
 // TODO put everything except Generator into a "details" namespace
 
+// TODO perhaps have a virtual superclass if we're doing very many of
+// these
+
 // TODO once things are working, we can play allocator games to
 // substantially reduce memory use
 
@@ -37,7 +40,7 @@ public:
    * start a traversal (terminating the one that was in progress, if
    * any); the next choose() will be at the top of the tree
    */
-  inline void start();
+  inline bool start();
 
   /*
    * return a number in 0..n
@@ -69,10 +72,14 @@ public:
   // https://github.com/regehr/uniform-tree-sampling/issues/2
 };
 
-void Generator::start() {
+bool Generator::start() {
   // pick highest priority node off the priority Q
   // walk up to the root, saving the path to get back to this node
+  // print something when we finish a level and assert that it doens't come back
+  // return false if we're done exploring the tree
+  //   or, just start sampling leaves uniformly
   Current = &*Root;
+  return true;
 }
 
 int Generator::choose(int Choices) {
@@ -88,7 +95,7 @@ int Generator::choose(int Choices) {
     N->Children.resize(Choices);
     Current->Children.at(LastChoice) = std::move(N);
     Current = &*N;
-    // TODO avoid bias
+    // TODO avoid bias, is it slow to make a new uniform_int_distribution every time?
     int Choice = (*Rand)() % Choices;
     LastChoice = Choice;
     return Choice;
@@ -101,7 +108,8 @@ bool Generator::flip() { return choose(2); }
 
 /*
  * the point of this class is to offer the naive alternative to the
- * smarter generator, as a basis for comparison 
+ * smarter generator, as a basis for comparison and so people can get
+ * used to the API without the heavyweight path selection stuff going on
  */
 class NaiveGenerator {
   std::random_device RD;

@@ -4,6 +4,14 @@
 
 #include "generator.h"
 
+int test() {
+  for (int i = 0; i < TreeDepth; ++i) {
+    if (g.flip())
+      return i;
+  }
+  return i;
+}
+
 int main() {
   const int REPS = 100000;
   const int TreeDepth = 10;
@@ -12,15 +20,10 @@ int main() {
   uniform::Generator g;
 
   for (int rep = 0; rep < REPS; ++rep) {
-    g.start();
-    for (int i = 0; i < TreeDepth; ++i) {
-      if (g.flip()) {
-        results[i]++;
-        goto done;
-      }
-    }
-    results[TreeDepth]++;
-  done:;
+    if (!g.start())
+      break;
+    auto res = test();
+    results[res]++;
   }
 
   int total = 0;
