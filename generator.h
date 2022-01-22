@@ -1,6 +1,9 @@
 #ifndef UNIFORM_GENERATOR_H_
 #define UNIFORM_GENERATOR_H_
 
+// FIXME delete
+#include <iostream>
+
 #include <cassert>
 #include <memory>
 #include <random>
@@ -26,14 +29,15 @@ class Generator {
 
   std::unique_ptr<Node> Root;
   Node *Current;
-  int LastChoice = -1;
+  int LastChoice = 0;
   std::random_device RD;
-  std::unique_ptr<std::default_random_engine> Rand;
+  std::unique_ptr<std::mt19937_64> Rand;
 
 public:
   Generator() {
-    auto seed = RD();
-    Rand = std::make_unique<std::default_random_engine>(seed);
+    Root = std::make_unique<Node>();
+    Root->Children.resize(1);
+    Rand = std::make_unique<std::mt19937_64>(RD());
   }
 
   /*
@@ -83,6 +87,7 @@ bool Generator::start() {
 }
 
 int Generator::choose(int Choices) {
+  std::cout << "choose("<< Choices << ")\n";
   // we're either following a predetermined path, or we're past that
   // and just making random choices
   if (false) { // is there something in the path?
@@ -90,13 +95,18 @@ int Generator::choose(int Choices) {
     // check that number of choices hasn't changed
     // return the predetermined choice
   } else {
-    auto N = std::make_unique<Node>();
-    N->Parent = Current;
-    N->Children.resize(Choices);
-    Current->Children.at(LastChoice) = std::move(N);
-    Current = &*N;
-    // TODO avoid bias, is it slow to make a new uniform_int_distribution every time?
-    int Choice = (*Rand)() % Choices;
+    auto N = &*(Current->Children.at(LastChoice));
+    // FIXME this conditional not needed once the rest of this code works
+    if (!N) {
+      N = new Node;
+      N->Parent = Current;
+      N->Children.resize(Choices);
+      auto UN = std::unique_ptr<Node>(N);
+      Current->Children.at(LastChoice) = std::move(UN);
+    }
+    Current = N;
+    std::uniform_int_distribution<int> Dist(0, Choices - 1);
+    int Choice = Dist(*Rand);
     LastChoice = Choice;
     return Choice;
     // TODO add this node to the priority queue at its depth
@@ -106,6 +116,7 @@ int Generator::choose(int Choices) {
 
 bool Generator::flip() { return choose(2); }
 
+#if 0
 /*
  * the point of this class is to offer the naive alternative to the
  * smarter generator, as a basis for comparison and so people can get
@@ -129,6 +140,7 @@ public:
   inline int choose_noeffect(int n);
   inline bool flip() { return choose(2); }
 };
+#endif
 
 } // namespace uniform
 

@@ -4,20 +4,20 @@
 
 #include "generator.h"
 
-int test() {
+static const int TreeDepth = 10;
+static std::vector<int> results(TreeDepth + 1);
+static uniform::Generator g;
+
+static int test() {
   for (int i = 0; i < TreeDepth; ++i) {
     if (g.flip())
       return i;
   }
-  return i;
+  return TreeDepth;
 }
 
 int main() {
   const int REPS = 100000;
-  const int TreeDepth = 10;
-
-  std::vector<int> results(TreeDepth + 1);
-  uniform::Generator g;
 
   for (int rep = 0; rep < REPS; ++rep) {
     if (!g.start())
