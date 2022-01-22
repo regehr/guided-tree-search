@@ -21,10 +21,15 @@ namespace uniform {
 // TODO once things are working, we can play allocator games to
 // substantially reduce memory use
 
-class Generator {
+static int TotalNodes = 0;
+
+class Generator { 
   struct Node {
     Node *Parent;
     std::vector<std::unique_ptr<Node>> Children;
+    Node() {
+      TotalNodes++;
+    }
   };
 
   std::unique_ptr<Node> Root;
@@ -36,6 +41,7 @@ class Generator {
 public:
   Generator() {
     Root = std::make_unique<Node>();
+    std::cout << "new generator! Root = " << &*Root << "\n";
     Root->Children.resize(1);
     Rand = std::make_unique<std::mt19937_64>(RD());
   }
@@ -82,12 +88,16 @@ bool Generator::start() {
   // print something when we finish a level and assert that it doens't come back
   // return false if we're done exploring the tree
   //   or, just start sampling leaves uniformly
+  std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
   Current = &*Root;
+  LastChoice = 0;
   return true;
 }
 
 int Generator::choose(int Choices) {
   std::cout << "choose("<< Choices << ")\n";
+  std::cout << "  children available = " << Current->Children.size() << "\n";
+  std::cout << "  root? = " << (Current == &*Root) << "\n";
   // we're either following a predetermined path, or we're past that
   // and just making random choices
   if (false) { // is there something in the path?
@@ -95,7 +105,7 @@ int Generator::choose(int Choices) {
     // check that number of choices hasn't changed
     // return the predetermined choice
   } else {
-    auto N = &*(Current->Children.at(LastChoice));
+    auto N = Current->Children.at(LastChoice).get();
     // FIXME this conditional not needed once the rest of this code works
     if (!N) {
       N = new Node;
@@ -105,9 +115,12 @@ int Generator::choose(int Choices) {
       Current->Children.at(LastChoice) = std::move(UN);
     }
     Current = N;
+    std::cout << "  Current->Parent = " << Current->Parent << "\n";
+    std::cout << "  Current = " << Current << "\n";
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
     int Choice = Dist(*Rand);
     LastChoice = Choice;
+    std::cout << "  returning " << Choice << "\n";
     return Choice;
     // TODO add this node to the priority queue at its depth
   }
