@@ -68,6 +68,8 @@ static unsigned long test2(uniform::Generator &G) {
  * TODO somewhat unstructured tree
  */
 
+//////////////////////////////////////////////////////////////////////////////
+
 int main() {
   const int REPS = 100 * 1000;
   std::vector<int> Results;
@@ -79,7 +81,7 @@ int main() {
   for (int rep = 0; rep < REPS; ++rep) {
     if (!G.start())
       break;
-    auto Res = test1(G);
+    auto Res = test2(G);
     std::cout << "Res = " << Res << "\n";
     if (Res >= Results.size())
       Results.resize(Res + 1);
@@ -97,3 +99,5 @@ int main() {
   std::cout << "Done.\n";
   return 0;
 }
+
+//////////////////////////////////////////////////////////////////////////////

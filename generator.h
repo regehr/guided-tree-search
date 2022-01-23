@@ -124,6 +124,8 @@ int Generator::choose(int Choices) {
       N->Children.resize(Choices);
       auto UN = std::unique_ptr<Node>(N);
       Current->Children.at(LastChoice) = std::move(UN);
+    } else {
+      assert((unsigned long)Choices == N->Children.size());
     }
     Current = N;
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
