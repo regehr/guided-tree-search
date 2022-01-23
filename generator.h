@@ -11,9 +11,9 @@
 
 #include "priq.h"
 
-namespace uniform {
-
-// TODO abstract base class for generator
+// TODO abstract base class for generator, so far we'll have three
+// implementations: the naive one, the BFS+random one, and the one
+// that implements a cardinality estimator
 
 // TODO put everything except Generator into a "details" namespace?
 
@@ -22,6 +22,24 @@ namespace uniform {
 
 // TODO once things are working, we can play allocator games to
 // substantially reduce memory use
+
+// TODO support weighted choice using an interface like YARPGen's
+// internal one
+
+// TODO wrap this library in a process and write a separate library
+// that talks to it using RPC or whatever, so programs like Csmith can
+// use this
+
+// TODO maybe take file name and line number as arguments to choose()
+// functions -- this will support inference of self-similarity in the
+// choice tree based on the fact that it's just the same code
+// executing over and over (but with different inputs, so the
+// self-similarity is not expected to be perfect)
+
+// TODO support rejection of samples:
+// https://github.com/regehr/uniform-tree-sampling/issues/2
+
+namespace uniform {
 
 static int TotalNodes = 0;
 
@@ -56,6 +74,7 @@ public:
    */
   inline int choose(int n);
 
+#if 0
   /*
    * adds n leaves but doesn't branch the tree; use this when this choice
    * does not affect any subsequent choices
@@ -68,17 +87,12 @@ public:
    * where we don't want to sample the whole space
    */
   inline int choose_noeffect(int n);
+#endif
 
   /*
    * shorthand for choose(2)
    */
   inline bool flip();
-
-  // TODO maybe take file name and line number as arguments to
-  // choose() functions
-
-  // TODO support rejection of samples:
-  // https://github.com/regehr/uniform-tree-sampling/issues/2
 };
 
 bool Generator::start() {
