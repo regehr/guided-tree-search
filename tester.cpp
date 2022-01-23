@@ -4,7 +4,7 @@
 
 #include "generator.h"
 
-static const int TreeDepth = 55;
+static const int TreeDepth = 56;
 static uniform::Generator g;
 
 static unsigned long test1() {
@@ -15,15 +15,17 @@ static unsigned long test1() {
   return TreeDepth;
 }
 
-static unsigned long test2_helper(int Depth) {
-  if (Depth == 0)
-    ;
-  else
-    return test2_helper(Depth - 1);
+static unsigned long test2_helper(int Depth, int Number) {
+  const int Factor = 2;
+  if (Depth == 0) {
+    return Number;
+  } else {
+    return test2_helper(Depth - 1, 2 * Number + f.choose(2));
+  }
 }
 
 static unsigned long test2() {
-  return test2_helper(TreeDepth);
+  return test2_helper(TreeDepth, 1);
 }
 
 int main() {
@@ -33,7 +35,7 @@ int main() {
   for (int rep = 0; rep < REPS; ++rep) {
     if (!g.start())
       break;
-    auto Res = test1();
+    auto Res = test2();
     if (Res >= Results.size())
       Results.resize(Res + 1);
     ++Results.at(Res);
