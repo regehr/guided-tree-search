@@ -41,7 +41,11 @@ will try to use consistently throughout code and documentation:
 * **Decision tree** - A **generator** embeds a decision tree that
     describes all **test cases** that it is capable of emitting. In
     the expected case, the decision tree is much too large to fully
-    explore, so we are forced to sample its leaves.
+    explore, so we are forced to sample its leaves. A key premise
+    behind our work is that the shape of the decision tree is not
+    known in advance. When its shape is highly regular (for example,
+    when drawing samples from a context free grammar) then there are
+    other approaches that probably work better that this library.
 
 * **Decision tree leaf** - When a generator reaches a leaf of its
     decision tree, then it has made all of the choices that need to be

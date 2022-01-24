@@ -42,6 +42,9 @@
 // never going to be able to make use of the information contained
 // down there
 
+// TODO what do we do about swarm testing, or parameter shuffling as
+// YARPGen calls it?
+
 namespace uniform {
 
 #ifdef _DEBUG
