@@ -4,10 +4,10 @@
 #include <cassert>
 #include <iostream>
 #include <memory>
-#include <random>
-#include <vector>
 #include <optional>
 #include <queue>
+#include <random>
+#include <vector>
 
 // TODO abstract base class for generator, so far we'll have three
 // implementations: the naive one, the BFS+random one, and the one
@@ -142,7 +142,7 @@ int Generator::choose(int Choices) {
       // violation and it's not clear how to proceed once it has
       // happened
       std::cout << "ERROR: Reached same node again, but different "
-        "number of choices this time\n";
+                   "number of choices this time\n";
       exit(-1);
     }
     int NumSavedChoices = SavedChoices.size();
