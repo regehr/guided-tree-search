@@ -181,14 +181,14 @@ void run_test(std::string Name, unsigned long (*TestFunction)(uniform::Generator
   std::cout << "Done.\n";
 }
 
-#define RUN_TEST(s) run_test(#s, s)
+#define RUN_TEST(TEST) run_test(#TEST, test_ ## TEST)
 
 
 int main() {
-  RUN_TEST(test_maximally_unbalanced);
-  RUN_TEST(test_full_tree);
-  RUN_TEST(test_right_skewed_tree);
-  RUN_TEST(test_path_with_thickets);
+  RUN_TEST(maximally_unbalanced);
+  RUN_TEST(full_tree);
+  RUN_TEST(right_skewed_tree);
+  RUN_TEST(path_with_thickets);
 
   return 0;
 }
