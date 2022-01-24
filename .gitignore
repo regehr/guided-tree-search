@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+
+# Text editor nonsense
+*.swp
