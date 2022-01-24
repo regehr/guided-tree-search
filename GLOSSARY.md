@@ -20,7 +20,7 @@ will try to use consistently throughout code and documentation:
 
 * **Chooser** (TODO: Better name?) - core API object with a `choice`
     method. Generators invoke this method repeatedly in order to
-    explore a single branch of the decision tree, on the way to
+    explore a single path through the **decision tree**, on the way to
     producing a **test case**. A well-formed generator must be
     deterministic modulo the chooser: it must not make choices on its
     own.
