@@ -33,8 +33,8 @@ static unsigned long test1_helper(uniform::Generator &G, int Depth, int Number,
 }
 
 static unsigned long test1(uniform::Generator &G) {
-  const int TreeDepth = 3;
-  const int BranchFactor = 10;
+  const int TreeDepth = 200;
+  const int BranchFactor = 2;
 
   return test1_helper(G, TreeDepth, 0, BranchFactor);
 }
@@ -70,8 +70,14 @@ static unsigned long test2(uniform::Generator &G) {
 
 //////////////////////////////////////////////////////////////////////////////
 
+#ifdef _DEBUG
+static const bool Debug = true;
+#else
+static const bool Debug = false;
+#endif
+
 int main() {
-  const int REPS = 100 * 1000;
+  const int REPS = 1000 * 1000;
   std::vector<int> Results;
   uniform::Generator G;
 
@@ -81,8 +87,9 @@ int main() {
   for (int rep = 0; rep < REPS; ++rep) {
     if (!G.start())
       break;
-    auto Res = test2(G);
-    std::cout << "Res = " << Res << "\n";
+    auto Res = test1(G);
+    if (Debug)
+      std::cout << "Res = " << Res << "\n";
     if (Res >= Results.size())
       Results.resize(Res + 1);
     ++Results.at(Res);

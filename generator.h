@@ -1,15 +1,13 @@
 #ifndef UNIFORM_GENERATOR_H_
 #define UNIFORM_GENERATOR_H_
 
-// FIXME delete
-#include <iostream>
-
 #include <cassert>
+#include <iostream>
 #include <memory>
 #include <random>
 #include <vector>
-
-#include "priq.h"
+#include <optional>
+#include <queue>
 
 // TODO abstract base class for generator, so far we'll have three
 // implementations: the naive one, the BFS+random one, and the one
@@ -28,7 +26,7 @@
 
 // TODO wrap this library in a process and write a separate library
 // that talks to it using RPC or whatever, so programs like Csmith can
-// use this
+// use this; perhaps use https://github.com/rpclib/rpclib
 
 // TODO maybe take file name and line number as arguments to choose()
 // functions -- this will support inference of self-similarity in the
@@ -40,6 +38,14 @@
 // https://github.com/regehr/uniform-tree-sampling/issues/2
 
 namespace uniform {
+
+#ifdef _DEBUG
+static const bool Debug = true;
+#else
+static const bool Debug = false;
+#endif
+
+#include "priq.h"
 
 static int TotalNodes = 0;
 
@@ -101,14 +107,16 @@ bool Generator::start() {
   // print something when we finish a level and assert that it doens't come back
   // return false if we're done exploring the tree
   //   or, just start sampling leaves uniformly
-  std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
+  if (Debug)
+    std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
   Current = &*Root;
   LastChoice = 0;
   return true;
 }
 
 int Generator::choose(int Choices) {
-  std::cout << "choose(" << Choices << ")\n";
+  if (Debug)
+    std::cout << "choose(" << Choices << ")\n";
   // we're either following a predetermined path, or we're past that
   // and just making random choices
   if (false) { // is there something in the path?
@@ -131,7 +139,8 @@ int Generator::choose(int Choices) {
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
     int Choice = Dist(*Rand);
     LastChoice = Choice;
-    std::cout << "  returning " << Choice << "\n";
+    if (Debug)
+      std::cout << "  returning " << Choice << "\n";
     return Choice;
     // TODO add this node to the priority queue at its depth
   }

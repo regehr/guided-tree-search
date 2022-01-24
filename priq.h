@@ -1,8 +1,3 @@
-#include <cassert>
-#include <optional>
-#include <queue>
-#include <vector>
-
 template <typename T> class PriQ {
   struct Elt {
     std::vector<T> Vec;
