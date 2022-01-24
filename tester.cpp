@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <vector>
+#include <string>
 
 #include "generator.h"
 
@@ -145,19 +146,23 @@ static const bool Debug = true;
 static const bool Debug = false;
 #endif
 
-int main() {
+
+void run_test(std::string Name, unsigned long (*TestFunction)(uniform::Generator &)){
   const int REPS = 1000 * 1000;
   std::vector<int> Results;
   uniform::Generator G;
 
-  std::vector<unsigned long (*)(uniform::Generator &)> TreeGenerators = {test1,
-                                                                         test2,
-                                                                         test3};
+  auto hline = std::string(40, '-');
+
+  std::cout << std::endl;
+  std::cout << hline << std::endl;
+  std::cout << "Running tests for " << Name << std::endl;
+  std::cout << hline << std::endl;
 
   for (int rep = 0; rep < REPS; ++rep) {
     if (!G.start())
       break;
-    auto Res = test1(G);
+    auto Res = TestFunction(G);
     if (Debug)
       std::cout << "Res = " << Res << "\n";
     if (Res >= Results.size())
@@ -174,6 +179,17 @@ int main() {
   assert(total == REPS);
 
   std::cout << "Done.\n";
+}
+
+#define RUN_TEST(s) run_test(#s, s)
+
+
+int main() {
+  RUN_TEST(test1);
+  RUN_TEST(test2);
+  RUN_TEST(test3);
+  RUN_TEST(test4);
+
   return 0;
 }
 
