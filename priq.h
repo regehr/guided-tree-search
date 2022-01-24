@@ -12,7 +12,7 @@ public:
    * insert element at given level
    */
   void insert(T t, int Level) {
-    if (Level >= Data.size())
+    if ((unsigned long)Level >= Data.size())
       Data.resize(Level + 1);
     Data.at(Level).Vec.push_back(t);
     if (Highest == -1 || Level < Highest)

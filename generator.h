@@ -63,7 +63,6 @@ class Generator {
   };
 
   std::unique_ptr<Node> Root;
-  PriQ<Node *> PendingPaths;
   Node *Current;
   int LastChoice;
   int Level;
@@ -72,6 +71,7 @@ class Generator {
   std::unique_ptr<std::mt19937_64> Rand;
   // this vector is in reverse order so we can pop stuff efficiently
   std::vector<int> SavedChoices;
+  PriQ<Node *> PendingPaths;
 
 public:
   Generator() {
@@ -113,18 +113,42 @@ public:
 };
 
 bool Generator::start() {
-  // pick highest priority node off the priority Q
-  // walk up to the root, saving the path to get back to this node
-  // print something when we finish a level and assert that it doens't come back
-  // return false if we're done exploring the tree
-  //   or, just start sampling leaves uniformly
   if (Debug)
     std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
   Current = &*Root;
   LastChoice = 0;
   Level = 0;
-  Started = true;
-  return true;
+  /* 
+   * case 1: this is the first traversal; we've not yet seen any of
+   * the decision tree, so do a purely random traversal to bootstrap
+   * things
+   */
+  if (!Started) {
+    Started = true;
+    return true;
+  }
+  /*
+   * case 2: the priority queue has unexplored decisions for us to
+   * traverse, this is where we spent most of our time of course
+   */
+  auto OptionalNode = PendingPaths.removeHead();
+  if (OptionalNode.has_value()) {
+    auto N = OptionalNode.value();
+    
+    // pick highest priority node off the priority Q
+    // walk up to the root, saving the path to get back to this node
+    // print something when we finish a level and assert that it doens't come back
+
+    return true;
+  }
+  /*
+   * case 3: the priority queue has run out of things for us to
+   * explore; we're done. this is not going to happen in practice for
+   * realistic applications. however, in the future we might wish to
+   * implement uniform sampling of the leaves; now that we have the
+   * entire decision tree this is not difficult.
+   */
+  return false;
 }
 
 int Generator::choose(int Choices) {
@@ -164,7 +188,7 @@ int Generator::choose(int Choices) {
     Current = N;
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
     Choice = Dist(*Rand);
-    // TODO add this node to the priority queue at its depth
+    PendingPaths.insert(N, Level);
   }
   LastChoice = Choice;
   Level++;
