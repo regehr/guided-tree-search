@@ -61,12 +61,81 @@ static unsigned long test2(uniform::Generator &G) {
 }
 
 /*
- * TODO heavily skewed tree
+ * Skewed tree: There is a long right-leaning path of depth Depth, and off
+ * every point in that path there is a left leaning path that goes to the same
+ * depth. The way to hit a leaf is either to go all the way down to the maximum
+ * depth, or the go left once and then right at any point after that.
+ *
+ * A notable feature of this test is that the left branches are much smaller than
+ * they look, and the right branches off the main path are quadratically larger
+ * than the left branches, so should be picked much more often.
  */
 
+static unsigned long test3_left_tree(uniform::Generator &G, int Depth, int Number){
+  if (Depth == 0)
+    return Number;
+  auto Choice = G.choose(2);
+  if (Choice == 1)
+    return Number;
+  return test3_left_tree(G, Depth - 1, Number + 1);
+}
+
+
+static unsigned long test3_helper(uniform::Generator &G, int Depth, int Number){
+  if (Depth == 0)
+    return Number;
+  auto Choice = G.choose(2);
+  if (Choice == 0)
+    return test3_left_tree(G, Depth - 1, Number);
+  return test3_helper(G, Depth - 1, Number + Depth);
+}
+
+static unsigned long test3(uniform::Generator &G) {
+  const int TreeDepth = 6;
+
+  return test3_helper(G, TreeDepth, 0);
+}
 /*
- * TODO somewhat unstructured tree
+ * This tree offers a long dangly path with "bushes" (complete or nearly-complete binary trees)
+ * hanging off each branch of the path, with the other branch leading to many more leaves. The
+ * direction of the long branch zigs and zags at each stage to mess with any attempt to find
+ * a consistent ordering of the paths.
+ *
+ * A notable feature of this test is that trying to traverse it breadth first (in any order) will
+ * go wrong because it will get caught in a bush rather than finding where the bulk of the tree
+ * lies.
  */
+
+static unsigned long test4_bush(uniform::Generator &G, unsigned long Size, unsigned long Number){
+    assert(Size > 0);
+    if (Size == 1) return Number;
+
+    unsigned long LargeSubtreeSize = Size / 2;
+
+    if (G.choose(2) == 0) return test4_bush(G, LargeSubtreeSize, Number);
+    else return test4_bush(G, Size - LargeSubtreeSize, Number + LargeSubtreeSize);
+}
+
+static unsigned long test4_helper(uniform::Generator &G, unsigned long Size, unsigned long Number, unsigned long BushSize, bool BushLeft){
+   assert(Size > 0);
+
+   if (Size <= BushSize) return test4_bush(G, Size, Number);
+
+   if (BushLeft) {
+     if (G.choose(2) == 0) return test4_bush(G, BushSize, Number);
+     else return test4_helper(G, Size - BushSize, Number + BushSize, BushSize, !BushLeft);
+   } else {
+     if (G.choose(2) == 1) return test4_bush(G, BushSize, Number + Size - BushSize);
+     else return test4_helper(G, Size - BushSize, Number, BushSize, !BushLeft);
+   }
+}
+
+static unsigned long test4(uniform::Generator &G) {
+  const int Size = 50;
+  const int BushSize = 8;
+
+  return test4_helper(G, Size, 0, BushSize, true);
+}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -82,7 +151,8 @@ int main() {
   uniform::Generator G;
 
   std::vector<unsigned long (*)(uniform::Generator &)> TreeGenerators = {test1,
-                                                                         test2};
+                                                                         test2,
+                                                                         test3};
 
   for (int rep = 0; rep < REPS; ++rep) {
     if (!G.start())
