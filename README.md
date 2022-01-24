@@ -120,10 +120,26 @@ TODO explain why reservoir sampling and MCTS aren't solutions for us
 - allow the user to customize behavior, e.g. don't insist that an
   integer constant in the output corresponds to 2^64 leaves
 
+# Building
+
+This library is header-only, there's nothing to link against, just
+include `generator.h`.
+
+You can do a debug build of the test driver like this:
+
+```
+clang++ -g -Wall -std=c++20 tester.cpp -fsanitize=address,undefined -D_DEBUG
+```
+
+You can do an optimized build of the test driver like this:
+
+```
+clang++ -Wall -std=c++20 -O3 tester.cpp
+```
+
 # TODO
 
-- write a collection of trivial but pathological generators, such as
-  the one that calls flip() 1000 times in succession
+- write some more generators in the test driver
 
 - work out how to evaluate how well this thing works, when used in
   non-trivial situations
@@ -135,3 +151,5 @@ TODO explain why reservoir sampling and MCTS aren't solutions for us
   reach them, etc.
 
 - work out how to take feedback about good/bad paths into account
+
+- lots more TODOs in the code

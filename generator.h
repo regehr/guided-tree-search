@@ -37,6 +37,11 @@
 // TODO support rejection of samples:
 // https://github.com/regehr/uniform-tree-sampling/issues/2
 
+// TODO optionally stop adding nodes to the explicit decision tree
+// beyond a certain depth, since beyond a certain point we're just
+// never going to be able to make use of the information contained
+// down there
+
 namespace uniform {
 
 #ifdef _DEBUG
@@ -45,6 +50,7 @@ static const bool Debug = true;
 static const bool Debug = false;
 #endif
 
+// TODO just inline this file at some point
 #include "priq.h"
 
 static int TotalNodes = 0;
@@ -58,9 +64,13 @@ class Generator {
 
   std::unique_ptr<Node> Root;
   Node *Current;
-  int LastChoice = 0;
+  int LastChoice;
+  int Level;
+  bool Started = false;
   std::random_device RD;
   std::unique_ptr<std::mt19937_64> Rand;
+  // this vector is in reverse order so we can pop stuff efficiently
+  std::vector<int> SavedChoices;
 
 public:
   Generator() {
@@ -111,39 +121,55 @@ bool Generator::start() {
     std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
   Current = &*Root;
   LastChoice = 0;
+  Level = 0;
+  Started = true;
   return true;
 }
 
 int Generator::choose(int Choices) {
   if (Debug)
-    std::cout << "choose(" << Choices << ")\n";
-  // we're either following a predetermined path, or we're past that
-  // and just making random choices
-  if (false) { // is there something in the path?
-    // node transition
-    // check that number of choices hasn't changed
-    // return the predetermined choice
-  } else {
-    auto N = Current->Children.at(LastChoice).get();
-    // FIXME this conditional not needed once the rest of this code works
-    if (!N) {
-      N = new Node;
-      N->Parent = Current;
-      N->Children.resize(Choices);
-      auto UN = std::unique_ptr<Node>(N);
-      Current->Children.at(LastChoice) = std::move(UN);
-    } else {
-      assert((unsigned long)Choices == N->Children.size());
+    std::cout << "choose(" << Choices << ") at Level " << Level << "\n";
+  assert(Started);
+
+  int Choice;
+  auto N = Current->Children.at(LastChoice).get();
+  if (N) {
+    /*
+     * we've arrived at a tree node that has already been visited
+     */
+    if ((unsigned long)Choices != N->Children.size()) {
+      // TODO it's unfriendly to exit here, but this is a critical API
+      // violation and it's not clear how to proceed once it has
+      // happened
+      std::cout << "ERROR: Reached same node again, but different "
+        "number of choices this time\n";
+      exit(-1);
     }
+    int NumSavedChoices = SavedChoices.size();
+    assert(NumSavedChoices > 0);
+    Choice = SavedChoices.at(NumSavedChoices - 1);
+    SavedChoices.pop_back();
+  } else {
+    /*
+     * we're off the beaten path, add this decision node to the tree
+     * and make a random choice
+     */
+    assert(SavedChoices.size() == 0);
+    N = new Node;
+    N->Parent = Current;
+    N->Children.resize(Choices);
+    auto UN = std::unique_ptr<Node>(N);
+    Current->Children.at(LastChoice) = std::move(UN);
     Current = N;
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
-    int Choice = Dist(*Rand);
-    LastChoice = Choice;
-    if (Debug)
-      std::cout << "  returning " << Choice << "\n";
-    return Choice;
+    Choice = Dist(*Rand);
     // TODO add this node to the priority queue at its depth
   }
+  LastChoice = Choice;
+  Level++;
+  if (Debug)
+    std::cout << "  returning " << Choice << "\n";
+  return Choice;
 }
 
 bool Generator::flip() { return choose(2); }
