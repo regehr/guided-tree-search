@@ -123,19 +123,7 @@ TODO explain why reservoir sampling and MCTS aren't solutions for us
 # Building
 
 This library is header-only, there's nothing to link against, just
-include `generator.h`.
-
-You can do a debug build of the test driver like this:
-
-```
-clang++ -g -Wall -std=c++20 tester.cpp -fsanitize=address,undefined -D_DEBUG
-```
-
-You can do an optimized build of the test driver like this:
-
-```
-clang++ -Wall -std=c++20 -O3 tester.cpp
-```
+include `generator.h` in your application code.
 
 # TODO
 

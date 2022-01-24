@@ -63,6 +63,7 @@ class Generator {
   };
 
   std::unique_ptr<Node> Root;
+  PriQ<Node *> PendingPaths;
   Node *Current;
   int LastChoice;
   int Level;
