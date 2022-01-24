@@ -132,6 +132,8 @@ include `generator.h` in your application code.
 - work out how to evaluate how well this thing works, when used in
   non-trivial situations
 
+- coverage-guided generation
+
 - plug this into Csmith and YARPGen and see what happens
 
 - work out how to take hints from the user about things like desirable
@@ -140,4 +142,4 @@ include `generator.h` in your application code.
 
 - work out how to take feedback about good/bad paths into account
 
-- lots more TODOs in the code
+- there are lots more TODOs in the code
