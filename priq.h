@@ -1,18 +1,18 @@
 template <typename T> class PriQ {
   struct Elt {
     std::vector<T> Vec;
-    int StartPos;
+    long StartPos;
   };
   std::vector<Elt> Data;
-  int Highest = -1;
+  long Highest = -1;
   const long MaxFree = 256;
 
 public:
   /*
    * insert element at given level
    */
-  void insert(T t, int Level) {
-    if ((unsigned long)Level >= Data.size())
+  void insert(T t, long Level) {
+    if (Level >= (long)Data.size())
       Data.resize(Level + 1);
     Data.at(Level).Vec.push_back(t);
     if (Highest == -1 || Level < Highest)
@@ -22,8 +22,8 @@ public:
   /*
    * remove item from the given level
    */
-  std::optional<T> remove(int Level) {
-    if (Level >= Data.size())
+  std::optional<T> remove(long Level) {
+    if (Level >= (long)Data.size())
       return {};
     if (count(Level) < 1)
       return {};
@@ -36,7 +36,7 @@ public:
     }
     if (Level == Highest && count(Level) == 0) {
       Highest = -1;
-      for (int L = Level + 1; L < Data.size(); ++L) {
+      for (long L = Level + 1; L < (long)Data.size(); ++L) {
         if (count(L) > 0) {
           Highest = L;
           break;
@@ -60,8 +60,8 @@ public:
   /*
    * return number of items at this level
    */
-  int count(int Level) {
-    if (Level >= Data.size())
+  long count(long Level) {
+    if (Level >= (long)Data.size())
       return 0;
     return Data.at(Level).Vec.size() - Data.at(Level).StartPos;
   }
@@ -70,5 +70,5 @@ public:
    * return the smallest level that is nonempty, or else -1 if all
    * levels are empty
    */
-  int firstNonemptyLevel() { return Highest; }
+  long firstNonemptyLevel() { return Highest; }
 };

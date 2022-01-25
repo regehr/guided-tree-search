@@ -9,6 +9,9 @@
 #include <random>
 #include <vector>
 
+// TODO rename classes, namespace, this file, maybe even the whole
+// repo to be consistent with GLOSSARY.md
+
 // TODO abstract base class for generator, so far we'll have three
 // implementations: the naive one, the BFS+random one, and the one
 // that implements a cardinality estimator
@@ -56,7 +59,7 @@ static const bool Debug = false;
 // TODO just inline this file at some point
 #include "priq.h"
 
-static int TotalNodes = 0;
+static long TotalNodes = 0;
 
 class Generator {
   struct Node {
@@ -67,13 +70,13 @@ class Generator {
 
   std::unique_ptr<Node> Root;
   Node *Current;
-  int LastChoice;
-  int Level;
+  long LastChoice;
+  long Level;
   bool Started = false;
   std::random_device RD;
   std::unique_ptr<std::mt19937_64> Rand;
   // this vector is in reverse order so we can pop stuff efficiently
-  std::vector<int> SavedChoices;
+  std::vector<long> SavedChoices;
   PriQ<Node *> PendingPaths;
 
 public:
@@ -92,21 +95,21 @@ public:
   /*
    * return a number in 0..n
    */
-  inline int choose(int n);
+  inline long choose(long n);
 
 #if 0
   /*
    * adds n leaves but doesn't branch the tree; use this when this choice
    * does not affect any subsequent choices
    */
-  inline int choose_nofork(int n);
+  inline long choose_nofork(long n);
 
   /*
    * generate a random integer without adding any leaves to the tree;
    * this this to generate things like strings and integer constants
    * where we don't want to sample the whole space
    */
-  inline int choose_noeffect(int n);
+  inline long choose_noeffect(long n);
 #endif
 
   /*
@@ -118,6 +121,7 @@ public:
 bool Generator::start() {
   if (Debug)
     std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
+  assert(SavedChoices.empty());
   Current = &*Root;
   LastChoice = 0;
   Level = 0;
@@ -137,7 +141,35 @@ bool Generator::start() {
   auto OptionalNode = PendingPaths.removeHead();
   if (OptionalNode.has_value()) {
     auto N = OptionalNode.value();
-    
+    // this loop walks up to the root, just to find our current Level
+    auto N2 = N;
+    long CurrentLevel = 0;
+    do {
+      N2 = N2->Parent;
+      CurrentLevel++;
+    } while (N2 != Root.get());
+    // this loop walks up to the root
+    do {
+      long Untaken = 0;
+      long Next;
+      for (long i = 0; i < (long)N->Children.size(); ++i) {
+        Node *Tmp = N->Children.at(i).get();
+        if (Tmp != nullptr) {
+          Untaken++;
+          Next = i;
+        }
+      }
+      // this node should not have been there if there wasn't a branch
+      // left to explore
+      assert(Untaken > 0);
+      // if there's at least one more unexplored branch, put this node
+      // back at the end of its priority queue
+      if (Untaken > 1)
+        PendingPaths.insert(N, CurrentLevel);
+      SavedChoices.push_back(Next);
+      N = N->Parent;
+      CurrentLevel--;
+    } while (N != Root.get());
     // pick highest priority node off the priority Q
     // walk up to the root, saving the path to get back to this node
     // print something when we finish a level and assert that it doens't come back
@@ -154,12 +186,12 @@ bool Generator::start() {
   return false;
 }
 
-int Generator::choose(int Choices) {
+long Generator::choose(long Choices) {
   if (Debug)
     std::cout << "choose(" << Choices << ") at Level " << Level << "\n";
   assert(Started);
 
-  int Choice;
+  long Choice;
   auto N = Current->Children.at(LastChoice).get();
   if (N) {
     /*
@@ -173,7 +205,7 @@ int Generator::choose(int Choices) {
                    "number of choices this time\n";
       exit(-1);
     }
-    int NumSavedChoices = SavedChoices.size();
+    long NumSavedChoices = SavedChoices.size();
     assert(NumSavedChoices > 0);
     Choice = SavedChoices.at(NumSavedChoices - 1);
     SavedChoices.pop_back();
@@ -191,7 +223,11 @@ int Generator::choose(int Choices) {
     Current = N;
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
     Choice = Dist(*Rand);
-    PendingPaths.insert(N, Level);
+    /*
+     * if there are other options we'll need to get back to them later
+     */
+    if (Choices > 1)
+      PendingPaths.insert(N, Level);
   }
   LastChoice = Choice;
   Level++;
@@ -218,12 +254,12 @@ public:
     Rand = std::make_unique<std::default_random_engine>(seed);
   }
   inline void start() {}
-  inline int choose(int n) {
+  inline long choose(long n) {
     // FIXME avoid bias
     return (*Rand)() % n;
   }
-  inline int choose_nofork(int n);
-  inline int choose_noeffect(int n);
+  inline long choose_nofork(long n);
+  inline long choose_noeffect(long n);
   inline bool flip() { return choose(2); }
 };
 #endif
