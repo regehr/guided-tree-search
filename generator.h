@@ -145,27 +145,42 @@ bool Generator::start() {
     if (Debug)
       std::cout << "  Starting a saved path down to level " << Level << "\n";
     auto N = OptionalNode.value();
+    Node *N2 = nullptr;
     // this loop walks up to the root, saving the decision 
     do {
-      long Untaken = 0;
-      long Next;
-      for (long i = 0; i < (long)N->Children.size(); ++i) {
-        Node *Tmp = N->Children.at(i).get();
-        if (Tmp == nullptr) {
-          Untaken++;
-          Next = i;
+      long Next = -1;
+      long S = N->Children.size();
+      if (N2) {
+        // we're above the target node, so just get to the target
+        for (long i = 0; i < S; ++i) {
+          if (N->Children.at(i).get() == N2) {
+            Next = i;
+            break;
+          }
         }
+      } else {
+        // we're at the target node, so find an untaken branch
+        long NumUntaken = 0;
+        for (long i = 0; i < S; ++i) {
+          Node *Tmp = N->Children.at(i).get();
+          if (Tmp == nullptr) {
+            NumUntaken++;
+            Next = i;
+          }
+        }
+        // this node should not have been there if there wasn't a branch
+        // left to explore
+        assert(NumUntaken > 0);
+        // if there's at least one more unexplored branch, put this node
+        // back at the end of its priority queue
+        if (NumUntaken > 1)
+          PendingPaths.insert(N, Level);
       }
-      // this node should not have been there if there wasn't a branch
-      // left to explore
-      assert(Untaken > 0);
-      // if there's at least one more unexplored branch, put this node
-      // back at the end of its priority queue
-      if (Untaken > 1)
-        PendingPaths.insert(N, Level);
+      assert(Next != -1);
       SavedChoices.push_back(Next);
       if (Debug)
         std::cout << "  appending " << Next << " to saved choice\n";
+      N2 = N;
       N = N->Parent;
       Level--;
     } while (N != Root.get());
@@ -188,12 +203,16 @@ bool Generator::start() {
 }
 
 long Generator::choose(long Choices) {
-  if (Debug)
-    std::cout << "choose(" << Choices << ") at Level " << Level << "\n";
   assert(Started);
+  if (Debug) {
+    std::cout << "choose(" << Choices << ") at Level " << Level << " \n";
+    std::cout << "  Current = " << Current << ", LastChoice = " << LastChoice << "\n";
+  }
 
   long Choice;
   auto N = Current->Children.at(LastChoice).get();
+  if (Debug)
+    std::cout << "Node pointer = " << N << "\n";
   if (N) {
     /*
      * we've arrived at a tree node that has already been visited
@@ -211,9 +230,8 @@ long Generator::choose(long Choices) {
       std::cout << "  There are " << NumSavedChoices << " saved choices\n";
     assert(NumSavedChoices > 0);
     Choice = SavedChoices.at(NumSavedChoices - 1);
-    if (Debug) {
+    if (Debug)
       std::cout << "  We'll be taking option " << Choice << "\n";
-    }
     SavedChoices.pop_back();
   } else {
     /*
@@ -226,7 +244,6 @@ long Generator::choose(long Choices) {
     N->Children.resize(Choices);
     auto UN = std::unique_ptr<Node>(N);
     Current->Children.at(LastChoice) = std::move(UN);
-    Current = N;
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
     Choice = Dist(*Rand);
     /*
@@ -234,10 +251,12 @@ long Generator::choose(long Choices) {
      */
     if (Choices > 1) {
       if (Debug)
-        std::cout << "  Inserting node at level " << Level << "\n";
+        std::cout << "  Inserting node " << N << " at level " << Level <<
+          " with degree " << Choices << "\n";
       PendingPaths.insert(N, Level);
     }
   }
+  Current = N;
   LastChoice = Choice;
   Level++;
   if (Debug)
