@@ -125,7 +125,7 @@ bool Generator::start() {
   Current = &*Root;
   LastChoice = 0;
   Level = 0;
-  /* 
+  /*
    * case 1: this is the first traversal; we've not yet seen any of
    * the decision tree, so do a purely random traversal to bootstrap
    * things
@@ -146,7 +146,7 @@ bool Generator::start() {
       std::cout << "  Starting a saved path down to level " << Level << "\n";
     auto N = OptionalNode.value();
     Node *N2 = nullptr;
-    // this loop walks up to the root, saving the decision 
+    // this loop walks up to the root, saving the decision
     do {
       long Next = -1;
       long S = N->Children.size();
@@ -184,9 +184,9 @@ bool Generator::start() {
       N = N->Parent;
       Level--;
     } while (N != Root.get());
-    // pick highest priority node off the priority Q
-    // walk up to the root, saving the path to get back to this node
-    // print something when we finish a level and assert that it doens't come back
+
+    // TODO: print something when we finish a level and assert that it
+    // doesn't come back
 
     return true;
   }
@@ -206,7 +206,8 @@ long Generator::choose(long Choices) {
   assert(Started);
   if (Debug) {
     std::cout << "choose(" << Choices << ") at Level " << Level << " \n";
-    std::cout << "  Current = " << Current << ", LastChoice = " << LastChoice << "\n";
+    std::cout << "  Current = " << Current << ", LastChoice = " << LastChoice
+              << "\n";
   }
 
   long Choice;
@@ -251,8 +252,8 @@ long Generator::choose(long Choices) {
      */
     if (Choices > 1) {
       if (Debug)
-        std::cout << "  Inserting node " << N << " at level " << Level <<
-          " with degree " << Choices << "\n";
+        std::cout << "  Inserting node " << N << " at level " << Level
+                  << " with degree " << Choices << "\n";
       PendingPaths.insert(N, Level);
     }
   }

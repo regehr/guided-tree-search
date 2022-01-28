@@ -54,7 +54,7 @@ public:
     if (L == -1)
       return {{}, -1};
     else
-      return {remove(L), L };
+      return {remove(L), L};
   }
 
   /*

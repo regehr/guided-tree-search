@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "generator.h"
 
@@ -31,14 +31,16 @@
 /*
  * maximally unbalanced n-ary tree
  */
-static unsigned long test_maximally_unbalanced_helper(uniform::Generator &G, int Depth, int Number,
-                                  int BranchFactor) {
+static unsigned long test_maximally_unbalanced_helper(uniform::Generator &G,
+                                                      int Depth, int Number,
+                                                      int BranchFactor) {
   if (Depth == 0)
     return Number;
   auto Choice = G.choose(BranchFactor);
   if (Choice != (BranchFactor - 1))
     return Number + Choice;
-  return test_maximally_unbalanced_helper(G, Depth - 1, Number + BranchFactor - 1, BranchFactor);
+  return test_maximally_unbalanced_helper(
+      G, Depth - 1, Number + BranchFactor - 1, BranchFactor);
 }
 
 static unsigned long test_maximally_unbalanced(uniform::Generator &G) {
@@ -51,14 +53,14 @@ static unsigned long test_maximally_unbalanced(uniform::Generator &G) {
 /*
  * full tree
  */
-static unsigned long test_full_tree_helper(uniform::Generator &G, int Depth, int Number,
-                                  int BranchFactor) {
+static unsigned long test_full_tree_helper(uniform::Generator &G, int Depth,
+                                           int Number, int BranchFactor) {
   if (Depth == 0) {
     return Number;
   } else {
-    return test_full_tree_helper(G, Depth - 1,
-                        (BranchFactor * Number) + G.choose(BranchFactor),
-                        BranchFactor);
+    return test_full_tree_helper(
+        G, Depth - 1, (BranchFactor * Number) + G.choose(BranchFactor),
+        BranchFactor);
   }
 }
 
@@ -75,12 +77,13 @@ static unsigned long test_full_tree(uniform::Generator &G) {
  * depth. The way to hit a leaf is either to go all the way down to the maximum
  * depth, or the go left once and then right at any point after that.
  *
- * A notable feature of this test is that the left branches are much smaller than
- * they look, and the right branches off the main path are quadratically larger
- * than the left branches, so should be picked much more often.
+ * A notable feature of this test is that the left branches are much smaller
+ * than they look, and the right branches off the main path are quadratically
+ * larger than the left branches, so should be picked much more often.
  */
 
-static unsigned long test_right_skewed_tree_left_tree(uniform::Generator &G, int Depth, int Number){
+static unsigned long test_right_skewed_tree_left_tree(uniform::Generator &G,
+                                                      int Depth, int Number) {
   if (Depth == 0)
     return Number;
   auto Choice = G.choose(2);
@@ -89,8 +92,8 @@ static unsigned long test_right_skewed_tree_left_tree(uniform::Generator &G, int
   return test_right_skewed_tree_left_tree(G, Depth - 1, Number + 1);
 }
 
-
-static unsigned long test_right_skewed_tree_helper(uniform::Generator &G, int Depth, int Number){
+static unsigned long test_right_skewed_tree_helper(uniform::Generator &G,
+                                                   int Depth, int Number) {
   if (Depth == 0)
     return Number;
   auto Choice = G.choose(2);
@@ -105,38 +108,57 @@ static unsigned long test_right_skewed_tree(uniform::Generator &G) {
   return test_right_skewed_tree_helper(G, TreeDepth, 0);
 }
 /*
- * This tree offers a long dangly path with "bushes" (complete or nearly-complete binary trees)
- * hanging off each branch of the path, with the other branch leading to many more leaves. The
- * direction of the long branch zigs and zags at each stage to mess with any attempt to find
- * a consistent ordering of the paths.
+ * This tree offers a long dangly path with "bushes" (complete or
+ * nearly-complete binary trees) hanging off each branch of the path, with the
+ * other branch leading to many more leaves. The direction of the long branch
+ * zigs and zags at each stage to mess with any attempt to find a consistent
+ * ordering of the paths.
  *
- * A notable feature of this test is that trying to traverse it breadth first (in any order) will
- * go wrong because it will get caught in a bush rather than finding where the bulk of the tree
- * lies.
+ * A notable feature of this test is that trying to traverse it breadth first
+ * (in any order) will go wrong because it will get caught in a bush rather than
+ * finding where the bulk of the tree lies.
  */
 
-static unsigned long test_path_with_thickets_bush(uniform::Generator &G, unsigned long Size, unsigned long Number){
-    assert(Size > 0);
-    if (Size == 1) return Number;
+static unsigned long test_path_with_thickets_bush(uniform::Generator &G,
+                                                  unsigned long Size,
+                                                  unsigned long Number) {
+  assert(Size > 0);
+  if (Size == 1)
+    return Number;
 
-    unsigned long LargeSubtreeSize = Size / 2;
+  unsigned long LargeSubtreeSize = Size / 2;
 
-    if (G.choose(2) == 0) return test_path_with_thickets_bush(G, LargeSubtreeSize, Number);
-    else return test_path_with_thickets_bush(G, Size - LargeSubtreeSize, Number + LargeSubtreeSize);
+  if (G.choose(2) == 0)
+    return test_path_with_thickets_bush(G, LargeSubtreeSize, Number);
+  else
+    return test_path_with_thickets_bush(G, Size - LargeSubtreeSize,
+                                        Number + LargeSubtreeSize);
 }
 
-static unsigned long test_path_with_thickets_helper(uniform::Generator &G, unsigned long Size, unsigned long Number, unsigned long BushSize, bool BushLeft){
-   assert(Size > 0);
+static unsigned long test_path_with_thickets_helper(uniform::Generator &G,
+                                                    unsigned long Size,
+                                                    unsigned long Number,
+                                                    unsigned long BushSize,
+                                                    bool BushLeft) {
+  assert(Size > 0);
 
-   if (Size <= BushSize) return test_path_with_thickets_bush(G, Size, Number);
+  if (Size <= BushSize)
+    return test_path_with_thickets_bush(G, Size, Number);
 
-   if (BushLeft) {
-     if (G.choose(2) == 0) return test_path_with_thickets_bush(G, BushSize, Number);
-     else return test_path_with_thickets_helper(G, Size - BushSize, Number + BushSize, BushSize, !BushLeft);
-   } else {
-     if (G.choose(2) == 1) return test_path_with_thickets_bush(G, BushSize, Number + Size - BushSize);
-     else return test_path_with_thickets_helper(G, Size - BushSize, Number, BushSize, !BushLeft);
-   }
+  if (BushLeft) {
+    if (G.choose(2) == 0)
+      return test_path_with_thickets_bush(G, BushSize, Number);
+    else
+      return test_path_with_thickets_helper(
+          G, Size - BushSize, Number + BushSize, BushSize, !BushLeft);
+  } else {
+    if (G.choose(2) == 1)
+      return test_path_with_thickets_bush(G, BushSize,
+                                          Number + Size - BushSize);
+    else
+      return test_path_with_thickets_helper(G, Size - BushSize, Number,
+                                            BushSize, !BushLeft);
+  }
 }
 
 static unsigned long test_path_with_thickets(uniform::Generator &G) {
@@ -154,8 +176,8 @@ static const bool Debug = true;
 static const bool Debug = false;
 #endif
 
-
-void run_test(std::string Name, unsigned long (*TestFunction)(uniform::Generator &)){
+void run_test(std::string Name,
+              unsigned long (*TestFunction)(uniform::Generator &)) {
   const int REPS = 1000 * 1000;
   std::vector<int> Results;
   uniform::Generator G;
@@ -189,8 +211,7 @@ void run_test(std::string Name, unsigned long (*TestFunction)(uniform::Generator
   std::cout << "Done.\n";
 }
 
-#define RUN_TEST(TEST) run_test(#TEST, test_ ## TEST)
-
+#define RUN_TEST(TEST) run_test(#TEST, test_##TEST)
 
 int main() {
   RUN_TEST(maximally_unbalanced);
