@@ -151,7 +151,7 @@ bool Generator::start() {
       long Next;
       for (long i = 0; i < (long)N->Children.size(); ++i) {
         Node *Tmp = N->Children.at(i).get();
-        if (Tmp != nullptr) {
+        if (Tmp == nullptr) {
           Untaken++;
           Next = i;
         }
@@ -164,6 +164,8 @@ bool Generator::start() {
       if (Untaken > 1)
         PendingPaths.insert(N, Level);
       SavedChoices.push_back(Next);
+      if (Debug)
+        std::cout << "  appending " << Next << " to saved choice\n";
       N = N->Parent;
       Level--;
     } while (N != Root.get());
