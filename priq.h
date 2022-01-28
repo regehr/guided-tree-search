@@ -49,12 +49,12 @@ public:
   /*
    * remove highest-priority item at any level
    */
-  std::optional<T> removeHead() {
+  std::pair<std::optional<T>, long> removeHead() {
     auto L = firstNonemptyLevel();
     if (L == -1)
-      return {};
+      return {{}, -1};
     else
-      return remove(L);
+      return {remove(L), L };
   }
 
   /*

@@ -131,6 +131,8 @@ bool Generator::start() {
    * things
    */
   if (!Started) {
+    if (Debug)
+      std::cout << "  First traversal\n";
     Started = true;
     return true;
   }
@@ -138,17 +140,12 @@ bool Generator::start() {
    * case 2: the priority queue has unexplored decisions for us to
    * traverse, this is where we spent most of our time of course
    */
-  auto OptionalNode = PendingPaths.removeHead();
+  auto [OptionalNode, Level] = PendingPaths.removeHead();
   if (OptionalNode.has_value()) {
+    if (Debug)
+      std::cout << "  Starting a saved path down to level " << Level << "\n";
     auto N = OptionalNode.value();
-    // this loop walks up to the root, just to find our current Level
-    auto N2 = N;
-    long CurrentLevel = 0;
-    do {
-      N2 = N2->Parent;
-      CurrentLevel++;
-    } while (N2 != Root.get());
-    // this loop walks up to the root
+    // this loop walks up to the root, saving the decision 
     do {
       long Untaken = 0;
       long Next;
@@ -165,10 +162,10 @@ bool Generator::start() {
       // if there's at least one more unexplored branch, put this node
       // back at the end of its priority queue
       if (Untaken > 1)
-        PendingPaths.insert(N, CurrentLevel);
+        PendingPaths.insert(N, Level);
       SavedChoices.push_back(Next);
       N = N->Parent;
-      CurrentLevel--;
+      Level--;
     } while (N != Root.get());
     // pick highest priority node off the priority Q
     // walk up to the root, saving the path to get back to this node
@@ -183,6 +180,8 @@ bool Generator::start() {
    * implement uniform sampling of the leaves; now that we have the
    * entire decision tree this is not difficult.
    */
+  if (Debug)
+    std::cout << "  Tree has been completely explored!\n";
   return false;
 }
 
@@ -206,8 +205,13 @@ long Generator::choose(long Choices) {
       exit(-1);
     }
     long NumSavedChoices = SavedChoices.size();
+    if (Debug)
+      std::cout << "  There are " << NumSavedChoices << " saved choices\n";
     assert(NumSavedChoices > 0);
     Choice = SavedChoices.at(NumSavedChoices - 1);
+    if (Debug) {
+      std::cout << "  We'll be taking option " << Choice << "\n";
+    }
     SavedChoices.pop_back();
   } else {
     /*
@@ -226,8 +230,11 @@ long Generator::choose(long Choices) {
     /*
      * if there are other options we'll need to get back to them later
      */
-    if (Choices > 1)
+    if (Choices > 1) {
+      if (Debug)
+        std::cout << "  Inserting node at level " << Level << "\n";
       PendingPaths.insert(N, Level);
+    }
   }
   LastChoice = Choice;
   Level++;

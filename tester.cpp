@@ -21,6 +21,14 @@
  */
 
 /*
+ * tree where degree increases by one every time we descend a level
+ */
+
+/*
+ * tree where degree decreases by one every time we descend a level
+ */
+
+/*
  * maximally unbalanced n-ary tree
  */
 static unsigned long test_maximally_unbalanced_helper(uniform::Generator &G, int Depth, int Number,
