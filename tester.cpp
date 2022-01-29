@@ -189,9 +189,12 @@ void run_test(std::string Name,
   std::cout << "Running tests for " << Name << std::endl;
   std::cout << hline << std::endl;
 
+  bool EarlyExit = false;
   for (int rep = 0; rep < REPS; ++rep) {
-    if (!G.start())
+    if (!G.start()) {
+      EarlyExit = true;
       break;
+    }
     auto Res = TestFunction(G);
     if (Debug)
       std::cout << "Res = " << Res << "\n";
@@ -207,7 +210,10 @@ void run_test(std::string Name,
     total += Results.at(i);
   }
   std::cout << "total = " << total << "\n";
-  assert(total == REPS);
+  if (EarlyExit)
+    assert(total <= REPS);
+  else
+    assert(total == REPS);
 
   std::cout << "Done.\n";
 }
