@@ -97,21 +97,18 @@ class BFSGuide : public Guide {
   long LastChoice;
   long Level;
   bool Started = false, Finished = true;
-  std::random_device RD;
   std::unique_ptr<std::mt19937_64> Rand;
   // this vector is in reverse order so we can pop stuff efficiently
   std::vector<long> SavedChoices;
   PriQ<Node *> PendingPaths;
 
 public:
-  BFSGuide() : BFSGuide(RD()) {}
-
   BFSGuide(long Seed) {
     Root = std::make_unique<Node>();
     Root->Children.resize(1);
     Rand = std::make_unique<std::mt19937_64>(Seed);
   }
-
+  BFSGuide() : BFSGuide (std::random_device{}()) {}
   ~BFSGuide() {}
 
   /*
@@ -155,10 +152,10 @@ bool BFSGuide::start() {
    * case 2: the priority queue has unexplored decisions for us to
    * traverse, this is where we spent most of our time of course
    */
-  auto [OptionalNode, Level] = PendingPaths.removeHead();
+  auto [OptionalNode, SavedLevel] = PendingPaths.removeHead();
   if (OptionalNode.has_value()) {
     if (Debug)
-      std::cout << "  Starting a saved path down to level " << Level << "\n";
+      std::cout << "  Starting a saved path down to level " << SavedLevel << "\n";
     auto N = OptionalNode.value();
     Node *N2 = nullptr;
     // this loop walks up to the root, saving the decision
@@ -199,7 +196,7 @@ bool BFSGuide::start() {
         if (NumUntaken > 1) {
           if (Debug)
             std::cout << "  Re-inserting node\n";
-          PendingPaths.insert(N, Level);
+          PendingPaths.insert(N, SavedLevel);
         }
       }
       assert(Next != -1);
@@ -309,20 +306,19 @@ bool BFSGuide::flip() { return choose(2); }
  * used to the API without the heavyweight path selection stuff going on
  */
 class DefaultGuide : public Guide {
-  std::random_device RD;
   std::unique_ptr<std::default_random_engine> Rand;
 
 public:
   DefaultGuide(long Seed) {
     Rand = std::make_unique<std::default_random_engine>(Seed);
   }
-  DefaultGuide() : DefaultGuide(RD()) {}
+  DefaultGuide() : DefaultGuide (std::random_device{}()) {}
   ~DefaultGuide() {}
   bool start() { return true; }
   void finish() {}
-  long choose(long n) {
-    // FIXME avoid bias
-    return (*Rand)() % n;
+  long choose(long Choices) {
+    std::uniform_int_distribution<int> Dist(0, Choices - 1);
+    return Dist(*Rand);
   }
   bool flip() { return choose(2); }
 };

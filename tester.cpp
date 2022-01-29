@@ -174,10 +174,12 @@ static unsigned long test_path_with_thickets(uniform::Guide &G) {
 
 //////////////////////////////////////////////////////////////////////////////
 
+#if 0
 #ifdef _DEBUG
 static const bool Debug = true;
 #else
 static const bool Debug = false;
+#endif
 #endif
 
 void run_test(std::string Name,
@@ -200,8 +202,6 @@ void run_test(std::string Name,
       break;
     }
     auto Res = TestFunction(G);
-    if (Debug)
-      std::cout << "Res = " << Res << "\n";
     if (Res >= Results.size())
       Results.resize(Res + 1);
     ++Results.at(Res);
