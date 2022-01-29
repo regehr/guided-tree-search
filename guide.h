@@ -9,8 +9,9 @@
 #include <random>
 #include <vector>
 
-// TODO rename classes, namespace, this file, maybe even the whole
-// repo to be consistent with GLOSSARY.md
+// TODO factor out the Chooser object that walks a path
+
+// TODO make everything here consistent with GLOSSARY.md
 
 // TODO cardinality estimator guide
 
@@ -306,11 +307,11 @@ bool BFSGuide::flip() { return choose(2); }
  * used to the API without the heavyweight path selection stuff going on
  */
 class DefaultGuide : public Guide {
-  std::unique_ptr<std::default_random_engine> Rand;
+  std::unique_ptr<std::mt19937_64> Rand;
 
 public:
   DefaultGuide(long Seed) {
-    Rand = std::make_unique<std::default_random_engine>(Seed);
+    Rand = std::make_unique<std::mt19937_64>(Seed);
   }
   DefaultGuide() : DefaultGuide (std::random_device{}()) {}
   ~DefaultGuide() {}
