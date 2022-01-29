@@ -9,7 +9,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address,undefined -D_DEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 

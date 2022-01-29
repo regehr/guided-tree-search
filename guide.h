@@ -77,6 +77,8 @@ static const bool Debug = false;
 
 class Guide {
 public:
+  Guide() {}
+  Guide(long) {}
   virtual ~Guide() = default;
   virtual bool start() = 0;
   virtual void finish() = 0;
@@ -104,10 +106,12 @@ class BFSGuide : public Guide {
 
 public:
   BFSGuide() {
+    BFSGuide(RD());
+  }
+
+  BFSGuide(long Seed) {
     Root = std::make_unique<Node>();
     Root->Children.resize(1);
-    auto Seed = RD();
-    // Seed = 34;
     Rand = std::make_unique<std::mt19937_64>(Seed);
   }
 
@@ -312,9 +316,11 @@ class DefaultGuide : public Guide {
   std::unique_ptr<std::default_random_engine> Rand;
 
 public:
+  DefaultGuide(long Seed) {
+    Rand = std::make_unique<std::default_random_engine>(Seed);
+  }
   DefaultGuide() {
-    auto seed = RD();
-    Rand = std::make_unique<std::default_random_engine>(seed);
+    DefaultGuide(RD());
   }
   ~DefaultGuide() {}
   bool start() { return true; }
