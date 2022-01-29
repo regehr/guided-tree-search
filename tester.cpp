@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "generator.h"
+#include "guide.h"
 
 /*
  * test tree generators
@@ -31,7 +31,7 @@
 /*
  * maximally unbalanced n-ary tree
  */
-static unsigned long test_maximally_unbalanced_helper(uniform::Generator &G,
+static unsigned long test_maximally_unbalanced_helper(uniform::Guide &G,
                                                       int Depth, int Number,
                                                       int BranchFactor) {
   if (Depth == 0)
@@ -43,7 +43,7 @@ static unsigned long test_maximally_unbalanced_helper(uniform::Generator &G,
       G, Depth - 1, Number + BranchFactor - 1, BranchFactor);
 }
 
-static unsigned long test_maximally_unbalanced(uniform::Generator &G) {
+static unsigned long test_maximally_unbalanced(uniform::Guide &G) {
   const int TreeDepth = 5;
   const int BranchFactor = 17;
 
@@ -53,7 +53,7 @@ static unsigned long test_maximally_unbalanced(uniform::Generator &G) {
 /*
  * full tree
  */
-static unsigned long test_full_tree_helper(uniform::Generator &G, int Depth,
+static unsigned long test_full_tree_helper(uniform::Guide &G, int Depth,
                                            int Number, int BranchFactor) {
   if (Depth == 0) {
     return Number;
@@ -64,7 +64,7 @@ static unsigned long test_full_tree_helper(uniform::Generator &G, int Depth,
   }
 }
 
-static unsigned long test_full_tree(uniform::Generator &G) {
+static unsigned long test_full_tree(uniform::Guide &G) {
   const int TreeDepth = 6;
   const int BranchFactor = 2;
 
@@ -82,7 +82,7 @@ static unsigned long test_full_tree(uniform::Generator &G) {
  * larger than the left branches, so should be picked much more often.
  */
 
-static unsigned long test_right_skewed_tree_left_tree(uniform::Generator &G,
+static unsigned long test_right_skewed_tree_left_tree(uniform::Guide &G,
                                                       int Depth, int Number) {
   if (Depth == 0)
     return Number;
@@ -92,8 +92,8 @@ static unsigned long test_right_skewed_tree_left_tree(uniform::Generator &G,
   return test_right_skewed_tree_left_tree(G, Depth - 1, Number + 1);
 }
 
-static unsigned long test_right_skewed_tree_helper(uniform::Generator &G,
-                                                   int Depth, int Number) {
+static unsigned long test_right_skewed_tree_helper(uniform::Guide &G, int Depth,
+                                                   int Number) {
   if (Depth == 0)
     return Number;
   auto Choice = G.choose(2);
@@ -102,7 +102,7 @@ static unsigned long test_right_skewed_tree_helper(uniform::Generator &G,
   return test_right_skewed_tree_helper(G, Depth - 1, Number + Depth);
 }
 
-static unsigned long test_right_skewed_tree(uniform::Generator &G) {
+static unsigned long test_right_skewed_tree(uniform::Guide &G) {
   const int TreeDepth = 6;
 
   return test_right_skewed_tree_helper(G, TreeDepth, 0);
@@ -119,7 +119,7 @@ static unsigned long test_right_skewed_tree(uniform::Generator &G) {
  * finding where the bulk of the tree lies.
  */
 
-static unsigned long test_path_with_thickets_bush(uniform::Generator &G,
+static unsigned long test_path_with_thickets_bush(uniform::Guide &G,
                                                   unsigned long Size,
                                                   unsigned long Number) {
   assert(Size > 0);
@@ -135,7 +135,7 @@ static unsigned long test_path_with_thickets_bush(uniform::Generator &G,
                                         Number + LargeSubtreeSize);
 }
 
-static unsigned long test_path_with_thickets_helper(uniform::Generator &G,
+static unsigned long test_path_with_thickets_helper(uniform::Guide &G,
                                                     unsigned long Size,
                                                     unsigned long Number,
                                                     unsigned long BushSize,
@@ -161,7 +161,7 @@ static unsigned long test_path_with_thickets_helper(uniform::Generator &G,
   }
 }
 
-static unsigned long test_path_with_thickets(uniform::Generator &G) {
+static unsigned long test_path_with_thickets(uniform::Guide &G) {
   const int Size = 50;
   const int BushSize = 8;
 
@@ -177,10 +177,10 @@ static const bool Debug = false;
 #endif
 
 void run_test(std::string Name,
-              unsigned long (*TestFunction)(uniform::Generator &)) {
+              unsigned long (*TestFunction)(uniform::Guide &)) {
   const int REPS = 1000 * 1000;
   std::vector<int> Results;
-  uniform::Generator G;
+  uniform::Guide G;
 
   auto hline = std::string(40, '-');
 

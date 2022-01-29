@@ -16,7 +16,7 @@
 // implementations: the naive one, the BFS+random one, and the one
 // that implements a cardinality estimator
 
-// TODO put everything except Generator into a "details" namespace?
+// TODO put everything except Guide into a "details" namespace?
 
 // TODO perhaps have a virtual superclass if we're doing very many of
 // these
@@ -61,7 +61,7 @@ static const bool Debug = false;
 
 static long TotalNodes = 0;
 
-class Generator {
+class Guide {
   struct Node {
     Node *Parent;
     std::vector<std::unique_ptr<Node>> Children;
@@ -80,7 +80,7 @@ class Generator {
   PriQ<Node *> PendingPaths;
 
 public:
-  Generator() {
+  Guide() {
     Root = std::make_unique<Node>();
     Root->Children.resize(1);
     auto Seed = RD();
@@ -120,7 +120,7 @@ public:
   inline bool flip();
 };
 
-bool Generator::start() {
+bool Guide::start() {
   assert(Finished);
   Finished = false;
   if (Debug)
@@ -215,7 +215,7 @@ bool Generator::start() {
   return false;
 }
 
-void Generator::finish() {
+void Guide::finish() {
   assert(!Finished);
   Finished = true;
   // FIXME -- at scale this allocation will greatly increase memory
@@ -224,7 +224,7 @@ void Generator::finish() {
     Current->Children.at(LastChoice) = std::make_unique<Node>();
 }
 
-long Generator::choose(long Choices) {
+long Guide::choose(long Choices) {
   assert(Started);
   if (Debug) {
     std::cout << "choose(" << Choices << ") at Level " << Level << " \n";
@@ -287,7 +287,7 @@ long Generator::choose(long Choices) {
   return Choice;
 }
 
-bool Generator::flip() { return choose(2); }
+bool Guide::flip() { return choose(2); }
 
 #if 0
 /*
@@ -295,12 +295,12 @@ bool Generator::flip() { return choose(2); }
  * smarter generator, as a basis for comparison and so people can get
  * used to the API without the heavyweight path selection stuff going on
  */
-class NaiveGenerator {
+class NaiveGuide {
   std::random_device RD;
   std::unique_ptr<std::default_random_engine> Rand;
 
 public:
-  NaiveGenerator() {
+  NaiveGuide() {
     auto seed = RD();
     Rand = std::make_unique<std::default_random_engine>(seed);
   }
