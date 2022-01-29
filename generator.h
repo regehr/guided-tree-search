@@ -163,26 +163,29 @@ bool Generator::start() {
           }
         }
         if (Debug)
-          std::cout << "  appending " << Next << " to saved choice above target node\n";
+          std::cout << "  appending " << Next
+                    << " to saved choice above target node\n";
       } else {
         // we're at the target node, so find an untaken branch
         long NumUntaken = 0;
         for (long i = 0; i < S; ++i) {
           if (Debug)
-            std::cout << "    child " << i << " = " << N->Children.at(i).get() << "\n";
+            std::cout << "    child " << i << " = " << N->Children.at(i).get()
+                      << "\n";
           if (N->Children.at(i).get() == nullptr) {
             NumUntaken++;
             Next = i;
           }
         }
         if (Debug)
-          std::cout << "  appending " << Next << " to saved choice at target node\n";
+          std::cout << "  appending " << Next
+                    << " to saved choice at target node\n";
         // this node should not have been there if there wasn't a branch
         // left to explore
         assert(NumUntaken > 0);
         // if there's at least one more unexplored branch, put this node
         // back at the end of its priority queue
-        if (false && NumUntaken > 1) { // FIXME ugh
+        if (NumUntaken > 1) {
           if (Debug)
             std::cout << "  Re-inserting node\n";
           PendingPaths.insert(N, Level);
@@ -220,7 +223,7 @@ void Generator::finish() {
   if (!Current->Children.at(LastChoice).get())
     Current->Children.at(LastChoice) = std::make_unique<Node>();
 }
-  
+
 long Generator::choose(long Choices) {
   assert(Started);
   if (Debug) {

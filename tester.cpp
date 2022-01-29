@@ -44,8 +44,8 @@ static unsigned long test_maximally_unbalanced_helper(uniform::Generator &G,
 }
 
 static unsigned long test_maximally_unbalanced(uniform::Generator &G) {
-  const int TreeDepth = 200;
-  const int BranchFactor = 2;
+  const int TreeDepth = 5;
+  const int BranchFactor = 17;
 
   return test_maximally_unbalanced_helper(G, TreeDepth, 0, BranchFactor);
 }
