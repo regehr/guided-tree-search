@@ -59,9 +59,20 @@ static const bool Debug = false;
 // TODO just inline this file at some point
 #include "priq.h"
 
+class Guide {
+public:
+  virtual ~Guide() = default;
+  virtual bool start() = 0;
+  virtual void finish() = 0;
+  virtual long choose(long n) = 0;
+  virtual long choose_nofork(long n) = 0;
+  virtual long choose_noeffect(long n) = 0;
+  bool flip() { return choose(2); }
+};
+
 static long TotalNodes = 0;
 
-class Guide {
+class BFSGuide : public Guide {
   struct Node {
     Node *Parent;
     std::vector<std::unique_ptr<Node>> Children;
@@ -80,7 +91,7 @@ class Guide {
   PriQ<Node *> PendingPaths;
 
 public:
-  Guide() {
+  BFSGuide() {
     Root = std::make_unique<Node>();
     Root->Children.resize(1);
     auto Seed = RD();
@@ -88,39 +99,41 @@ public:
     Rand = std::make_unique<std::mt19937_64>(Seed);
   }
 
+  ~BFSGuide() {}
+
   /*
    * TODO these will be constructor/destructor of a Chooser object
    */
-  inline bool start();
-  inline void finish();
+  bool start();
+  void finish();
 
   /*
    * return a number in 0..n
    */
-  inline long choose(long n);
+  long choose(long n);
 
 #if 0
   /*
    * adds n leaves but doesn't branch the tree; use this when this choice
    * does not affect any subsequent choices
    */
-  inline long choose_nofork(long n);
+  long choose_nofork(long n);
 
   /*
    * generate a random integer without adding any leaves to the tree;
    * this this to generate things like strings and integer constants
    * where we don't want to sample the whole space
    */
-  inline long choose_noeffect(long n);
+  long choose_noeffect(long n);
 #endif
 
   /*
    * shorthand for choose(2)
    */
-  inline bool flip();
+  bool flip();
 };
 
-bool Guide::start() {
+bool BFSGuide::start() {
   assert(Finished);
   Finished = false;
   if (Debug)
@@ -215,7 +228,7 @@ bool Guide::start() {
   return false;
 }
 
-void Guide::finish() {
+void BFSGuide::finish() {
   assert(!Finished);
   Finished = true;
   // FIXME -- at scale this allocation will greatly increase memory
@@ -224,7 +237,7 @@ void Guide::finish() {
     Current->Children.at(LastChoice) = std::make_unique<Node>();
 }
 
-long Guide::choose(long Choices) {
+long BFSGuide::choose(long Choices) {
   assert(Started);
   if (Debug) {
     std::cout << "choose(" << Choices << ") at Level " << Level << " \n";
@@ -287,33 +300,39 @@ long Guide::choose(long Choices) {
   return Choice;
 }
 
-bool Guide::flip() { return choose(2); }
+bool BFSGuide::flip() { return choose(2); }
 
-#if 0
 /*
  * the point of this class is to offer the naive alternative to the
  * smarter generator, as a basis for comparison and so people can get
  * used to the API without the heavyweight path selection stuff going on
  */
-class NaiveGuide {
+class DefaultGuide : public Guide {
   std::random_device RD;
   std::unique_ptr<std::default_random_engine> Rand;
 
 public:
-  NaiveGuide() {
+  DefaultGuide() {
     auto seed = RD();
     Rand = std::make_unique<std::default_random_engine>(seed);
   }
-  inline void start() {}
-  inline long choose(long n) {
+  ~DefaultGuide() {}
+  bool start() { return true; }
+  void finish() {}
+  long choose(long n) {
     // FIXME avoid bias
     return (*Rand)() % n;
   }
-  inline long choose_nofork(long n);
-  inline long choose_noeffect(long n);
-  inline bool flip() { return choose(2); }
+  long choose_nofork(long n) {
+    assert(false);
+    return 0;
+  }
+  long choose_noeffect(long n) {
+    assert(false);
+    return 0;
+  }
+  bool flip() { return choose(2); }
 };
-#endif
 
 } // namespace uniform
 

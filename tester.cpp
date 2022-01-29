@@ -24,9 +24,13 @@
  * tree where degree increases by one every time we descend a level
  */
 
+// TODO
+
 /*
  * tree where degree decreases by one every time we descend a level
  */
+
+// TODO
 
 /*
  * maximally unbalanced n-ary tree
@@ -180,7 +184,7 @@ void run_test(std::string Name,
               unsigned long (*TestFunction)(uniform::Guide &)) {
   const int REPS = 1000 * 1000;
   std::vector<int> Results;
-  uniform::Guide G;
+  uniform::DefaultGuide G;
 
   auto hline = std::string(40, '-');
 
