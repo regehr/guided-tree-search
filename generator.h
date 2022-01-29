@@ -72,7 +72,7 @@ class Generator {
   Node *Current;
   long LastChoice;
   long Level;
-  bool Started = false;
+  bool Started = false, Finished = true;
   std::random_device RD;
   std::unique_ptr<std::mt19937_64> Rand;
   // this vector is in reverse order so we can pop stuff efficiently
@@ -83,14 +83,16 @@ public:
   Generator() {
     Root = std::make_unique<Node>();
     Root->Children.resize(1);
-    Rand = std::make_unique<std::mt19937_64>(RD());
+    auto Seed = RD();
+    // Seed = 34;
+    Rand = std::make_unique<std::mt19937_64>(Seed);
   }
 
   /*
-   * start a traversal (terminating the one that was in progress, if
-   * any); the next choose() will be at the top of the tree
+   * TODO these will be constructor/destructor of a Chooser object
    */
   inline bool start();
+  inline void finish();
 
   /*
    * return a number in 0..n
@@ -119,6 +121,8 @@ public:
 };
 
 bool Generator::start() {
+  assert(Finished);
+  Finished = false;
   if (Debug)
     std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
   assert(SavedChoices.empty());
@@ -158,28 +162,34 @@ bool Generator::start() {
             break;
           }
         }
+        if (Debug)
+          std::cout << "  appending " << Next << " to saved choice above target node\n";
       } else {
         // we're at the target node, so find an untaken branch
         long NumUntaken = 0;
         for (long i = 0; i < S; ++i) {
-          Node *Tmp = N->Children.at(i).get();
-          if (Tmp == nullptr) {
+          if (Debug)
+            std::cout << "    child " << i << " = " << N->Children.at(i).get() << "\n";
+          if (N->Children.at(i).get() == nullptr) {
             NumUntaken++;
             Next = i;
           }
         }
+        if (Debug)
+          std::cout << "  appending " << Next << " to saved choice at target node\n";
         // this node should not have been there if there wasn't a branch
         // left to explore
         assert(NumUntaken > 0);
         // if there's at least one more unexplored branch, put this node
         // back at the end of its priority queue
-        if (NumUntaken > 1)
+        if (false && NumUntaken > 1) { // FIXME ugh
+          if (Debug)
+            std::cout << "  Re-inserting node\n";
           PendingPaths.insert(N, Level);
+        }
       }
       assert(Next != -1);
       SavedChoices.push_back(Next);
-      if (Debug)
-        std::cout << "  appending " << Next << " to saved choice\n";
       N2 = N;
       N = N->Parent;
       Level--;
@@ -202,6 +212,15 @@ bool Generator::start() {
   return false;
 }
 
+void Generator::finish() {
+  assert(!Finished);
+  Finished = true;
+  // FIXME -- at scale this allocation will greatly increase memory
+  // usage, do this a different way
+  if (!Current->Children.at(LastChoice).get())
+    Current->Children.at(LastChoice) = std::make_unique<Node>();
+}
+  
 long Generator::choose(long Choices) {
   assert(Started);
   if (Debug) {

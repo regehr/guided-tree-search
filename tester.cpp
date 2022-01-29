@@ -44,7 +44,7 @@ static unsigned long test_maximally_unbalanced_helper(uniform::Generator &G,
 }
 
 static unsigned long test_maximally_unbalanced(uniform::Generator &G) {
-  const int TreeDepth = 5;
+  const int TreeDepth = 200;
   const int BranchFactor = 2;
 
   return test_maximally_unbalanced_helper(G, TreeDepth, 0, BranchFactor);
@@ -198,6 +198,7 @@ void run_test(std::string Name,
     if (Res >= Results.size())
       Results.resize(Res + 1);
     ++Results.at(Res);
+    G.finish();
   }
 
   int total = 0;
