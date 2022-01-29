@@ -12,14 +12,13 @@
 // TODO rename classes, namespace, this file, maybe even the whole
 // repo to be consistent with GLOSSARY.md
 
-// TODO abstract base class for generator, so far we'll have three
-// implementations: the naive one, the BFS+random one, and the one
-// that implements a cardinality estimator
+// TODO cardinality estimator guide
+
+// TODO coverage-driven guide
+
+// TODO support hierarchy/grouping in the stream of choices
 
 // TODO put everything except Guide into a "details" namespace?
-
-// TODO perhaps have a virtual superclass if we're doing very many of
-// these
 
 // TODO once things are working, we can play allocator games to
 // substantially reduce memory use
@@ -105,9 +104,7 @@ class BFSGuide : public Guide {
   PriQ<Node *> PendingPaths;
 
 public:
-  BFSGuide() {
-    BFSGuide(RD());
-  }
+  BFSGuide() : BFSGuide(RD()) {}
 
   BFSGuide(long Seed) {
     Root = std::make_unique<Node>();
@@ -319,9 +316,7 @@ public:
   DefaultGuide(long Seed) {
     Rand = std::make_unique<std::default_random_engine>(Seed);
   }
-  DefaultGuide() {
-    DefaultGuide(RD());
-  }
+  DefaultGuide() : DefaultGuide(RD()) {}
   ~DefaultGuide() {}
   bool start() { return true; }
   void finish() {}
