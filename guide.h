@@ -48,6 +48,22 @@
 // TODO what do we do about swarm testing, or parameter shuffling as
 // YARPGen calls it?
 
+// TODO support these, eventually
+#if 0
+  /*
+   * adds n leaves but doesn't branch the tree; use this when this choice
+   * does not affect any subsequent choices
+   */
+  long choose_nofork(long n);
+
+  /*
+   * generate a random integer without adding any leaves to the tree;
+   * this this to generate things like strings and integer constants
+   * where we don't want to sample the whole space
+   */
+  long choose_noeffect(long n);
+#endif
+
 namespace uniform {
 
 #ifdef _DEBUG
@@ -65,20 +81,16 @@ public:
   virtual bool start() = 0;
   virtual void finish() = 0;
   virtual long choose(long n) = 0;
-  virtual long choose_nofork(long n) = 0;
-  virtual long choose_noeffect(long n) = 0;
   bool flip() { return choose(2); }
 };
-
-static long TotalNodes = 0;
 
 class BFSGuide : public Guide {
   struct Node {
     Node *Parent;
     std::vector<std::unique_ptr<Node>> Children;
-    Node() { TotalNodes++; }
   };
 
+  long TotalNodes = 0;
   std::unique_ptr<Node> Root;
   Node *Current;
   long LastChoice;
@@ -111,21 +123,6 @@ public:
    * return a number in 0..n
    */
   long choose(long n);
-
-#if 0
-  /*
-   * adds n leaves but doesn't branch the tree; use this when this choice
-   * does not affect any subsequent choices
-   */
-  long choose_nofork(long n);
-
-  /*
-   * generate a random integer without adding any leaves to the tree;
-   * this this to generate things like strings and integer constants
-   * where we don't want to sample the whole space
-   */
-  long choose_noeffect(long n);
-#endif
 
   /*
    * shorthand for choose(2)
@@ -233,8 +230,10 @@ void BFSGuide::finish() {
   Finished = true;
   // FIXME -- at scale this allocation will greatly increase memory
   // usage, do this a different way
-  if (!Current->Children.at(LastChoice).get())
+  if (!Current->Children.at(LastChoice).get()) {
     Current->Children.at(LastChoice) = std::make_unique<Node>();
+    TotalNodes++;
+  }
 }
 
 long BFSGuide::choose(long Choices) {
@@ -276,6 +275,7 @@ long BFSGuide::choose(long Choices) {
      */
     assert(SavedChoices.size() == 0);
     N = new Node;
+    TotalNodes++;
     N->Parent = Current;
     N->Children.resize(Choices);
     auto UN = std::unique_ptr<Node>(N);
@@ -322,14 +322,6 @@ public:
   long choose(long n) {
     // FIXME avoid bias
     return (*Rand)() % n;
-  }
-  long choose_nofork(long n) {
-    assert(false);
-    return 0;
-  }
-  long choose_noeffect(long n) {
-    assert(false);
-    return 0;
   }
   bool flip() { return choose(2); }
 };
