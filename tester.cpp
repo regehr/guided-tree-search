@@ -41,9 +41,11 @@ static unsigned long test_maximally_unbalanced_helper(uniform::Guide &G,
       G, Depth - 1, Number + BranchFactor - 1, BranchFactor);
 }
 
-static unsigned long test_maximally_unbalanced(uniform::Guide &G) {
+static unsigned long test_maximally_unbalanced(uniform::Guide &G,
+                                               long &NumLeaves) {
   const int TreeDepth = 5;
   const int BranchFactor = 17;
+  NumLeaves = (BranchFactor - 1) * (TreeDepth - 1) + BranchFactor;
 
   return test_maximally_unbalanced_helper(G, TreeDepth, 0, BranchFactor);
 }
@@ -62,9 +64,19 @@ static unsigned long test_full_tree_helper(uniform::Guide &G, int Depth,
   }
 }
 
-static unsigned long test_full_tree(uniform::Guide &G) {
+// x^y
+static long ipow(long x, long y) {
+  long Result = 1;
+  for (int i = 0; i < y; ++i)
+    Result *= x;
+  return Result;
+}
+
+static unsigned long test_full_tree(uniform::Guide &G,
+                                    long &NumLeaves) {
   const int TreeDepth = 6;
   const int BranchFactor = 2;
+  NumLeaves = ipow(BranchFactor, TreeDepth);
 
   return test_full_tree_helper(G, TreeDepth, 0, BranchFactor);
 }
@@ -82,6 +94,7 @@ static unsigned long test_full_tree(uniform::Guide &G) {
 
 static unsigned long test_right_skewed_tree_left_tree(uniform::Guide &G,
                                                       int Depth, int Number) {
+
   if (Depth == 0)
     return Number;
   auto Choice = G.choose(2);
@@ -100,7 +113,8 @@ static unsigned long test_right_skewed_tree_helper(uniform::Guide &G, int Depth,
   return test_right_skewed_tree_helper(G, Depth - 1, Number + Depth);
 }
 
-static unsigned long test_right_skewed_tree(uniform::Guide &G) {
+static unsigned long test_right_skewed_tree(uniform::Guide &G,
+                                            long &NumLeaves) {
   const int TreeDepth = 6;
 
   return test_right_skewed_tree_helper(G, TreeDepth, 0);
@@ -159,7 +173,8 @@ static unsigned long test_path_with_thickets_helper(uniform::Guide &G,
   }
 }
 
-static unsigned long test_path_with_thickets(uniform::Guide &G) {
+static unsigned long test_path_with_thickets(uniform::Guide &G,
+                                             long &NumLeaves) {
   const int Size = 50;
   const int BushSize = 8;
 
@@ -182,8 +197,12 @@ static unsigned long test_increasing_degree_tree_helper(uniform::Guide &G,
   }
 }
 
-static unsigned long test_increasing_degree_tree(uniform::Guide &G) {
+static unsigned long test_increasing_degree_tree(uniform::Guide &G,
+                                                 long &NumLeaves) {
   const int TreeDepth = 6;
+  NumLeaves = 1;
+  for (int i = 1; i <= TreeDepth; ++i)
+    NumLeaves *= i;
 
   return test_increasing_degree_tree_helper(G, TreeDepth, 0, 1);
 }
@@ -199,25 +218,26 @@ static const bool Debug = false;
 #endif
 
 void run_test(std::string Name,
-              unsigned long (*TestFunction)(uniform::Guide &)) {
+              unsigned long (*TestFunction)(uniform::Guide &, long &NumLeaves)) {
   const int REPS = 1000 * 1000;
   std::vector<int> Results;
   uniform::BFSGuide G;
 
   auto hline = std::string(40, '-');
 
-  std::cout << std::endl;
-  std::cout << hline << std::endl;
-  std::cout << "Running tests for " << Name << std::endl;
-  std::cout << hline << std::endl;
+  std::cout << "\n";
+  std::cout << hline << "\n";
+  std::cout << "Running tests for " << Name << "\n";
+  std::cout << hline << "\n";
 
   bool EarlyExit = false;
+  long NumLeaves = -1;
   for (int rep = 0; rep < REPS; ++rep) {
     if (!G.start()) {
       EarlyExit = true;
       break;
     }
-    auto Res = TestFunction(G);
+    auto Res = TestFunction(G, NumLeaves);
     if (Res >= Results.size())
       Results.resize(Res + 1);
     ++Results.at(Res);
@@ -230,6 +250,15 @@ void run_test(std::string Name,
     total += Results.at(i);
   }
   std::cout << "total = " << total << "\n";
+
+  /*
+   * this only works for guides that visit each leaf once and then
+   * stop!
+   */
+  assert(NumLeaves == -1 || NumLeaves == (long)Results.size());
+  for (unsigned long i = 0; i < Results.size(); ++i)
+    assert(Results.at(i) == 1);
+  
   if (EarlyExit)
     assert(total <= REPS);
   else
