@@ -21,12 +21,6 @@
  */
 
 /*
- * tree where degree increases by one every time we descend a level
- */
-
-// TODO
-
-/*
  * tree where degree decreases by one every time we descend a level
  */
 
@@ -172,6 +166,27 @@ static unsigned long test_path_with_thickets(uniform::Guide &G) {
   return test_path_with_thickets_helper(G, Size, 0, BushSize, true);
 }
 
+/*
+ * tree where degree increases by one every time we descend a level
+ */
+
+static unsigned long test_increasing_degree_tree_helper(uniform::Guide &G, int Depth,
+                                           int Number, int BranchFactor) {
+  if (Depth == 0) {
+    return Number;
+  } else {
+    return test_increasing_degree_tree_helper(
+        G, Depth - 1, (BranchFactor * Number) + G.choose(BranchFactor),
+        BranchFactor + 1);
+  }
+}
+
+static unsigned long test_increasing_degree_tree(uniform::Guide &G) {
+  const int TreeDepth = 6;
+
+  return test_increasing_degree_tree_helper(G, TreeDepth, 0, 1);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 #if 0
@@ -229,6 +244,7 @@ int main() {
   RUN_TEST(full_tree);
   RUN_TEST(right_skewed_tree);
   RUN_TEST(path_with_thickets);
+  RUN_TEST(increasing_degree_tree);
 
   return 0;
 }

@@ -9,7 +9,19 @@
 #include <random>
 #include <vector>
 
+// TODO make it so that the tester detects when a test tree
+// accidentally gives the same leaf number to two different leaves
+// (perhaps also look for failure of density of leaf numbering, but
+// this is not hard to spot visually by looking at the output)
+
+// TODO maybe split this into multiple files but then put them
+// together so in the end there's a single file that people can use
+
 // TODO factor out the Chooser object that walks a path
+
+// TODO make BFS print when it's done with each level
+
+// TODO make BFS optionally sometimes sample from lower depths
 
 // TODO make everything here consistent with GLOSSARY.md
 
