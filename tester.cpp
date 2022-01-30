@@ -170,8 +170,9 @@ static unsigned long test_path_with_thickets(uniform::Guide &G) {
  * tree where degree increases by one every time we descend a level
  */
 
-static unsigned long test_increasing_degree_tree_helper(uniform::Guide &G, int Depth,
-                                           int Number, int BranchFactor) {
+static unsigned long test_increasing_degree_tree_helper(uniform::Guide &G,
+                                                        int Depth, int Number,
+                                                        int BranchFactor) {
   if (Depth == 0) {
     return Number;
   } else {
@@ -201,7 +202,7 @@ void run_test(std::string Name,
               unsigned long (*TestFunction)(uniform::Guide &)) {
   const int REPS = 1000 * 1000;
   std::vector<int> Results;
-  uniform::DefaultGuide G;
+  uniform::BFSGuide G;
 
   auto hline = std::string(40, '-');
 

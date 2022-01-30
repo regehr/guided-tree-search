@@ -124,7 +124,7 @@ public:
     Root->Children.resize(1);
     Rand = std::make_unique<std::mt19937_64>(Seed);
   }
-  BFSGuide() : BFSGuide (std::random_device{}()) {}
+  BFSGuide() : BFSGuide(std::random_device{}()) {}
   ~BFSGuide() {}
 
   /*
@@ -171,7 +171,8 @@ bool BFSGuide::start() {
   auto [OptionalNode, SavedLevel] = PendingPaths.removeHead();
   if (OptionalNode.has_value()) {
     if (Debug)
-      std::cout << "  Starting a saved path down to level " << SavedLevel << "\n";
+      std::cout << "  Starting a saved path down to level " << SavedLevel
+                << "\n";
     auto N = OptionalNode.value();
     Node *N2 = nullptr;
     // this loop walks up to the root, saving the decision
@@ -325,10 +326,8 @@ class DefaultGuide : public Guide {
   std::unique_ptr<std::mt19937_64> Rand;
 
 public:
-  DefaultGuide(long Seed) {
-    Rand = std::make_unique<std::mt19937_64>(Seed);
-  }
-  DefaultGuide() : DefaultGuide (std::random_device{}()) {}
+  DefaultGuide(long Seed) { Rand = std::make_unique<std::mt19937_64>(Seed); }
+  DefaultGuide() : DefaultGuide(std::random_device{}()) {}
   ~DefaultGuide() {}
   bool start() { return true; }
   void finish() {}
