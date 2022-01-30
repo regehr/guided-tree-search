@@ -14,6 +14,9 @@
 // (perhaps also look for failure of density of leaf numbering, but
 // this is not hard to spot visually by looking at the output)
 
+// TODO it'll be easy to make a meta-guide that round-robins among
+// existing ones
+
 // TODO maybe split this into multiple files but then put them
 // together so in the end there's a single file that people can use
 
