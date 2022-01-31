@@ -9,20 +9,14 @@
 #include <random>
 #include <vector>
 
-// TODO make it so that the tester detects when a test tree
-// accidentally gives the same leaf number to two different leaves
-// (perhaps also look for failure of density of leaf numbering, but
-// this is not hard to spot visually by looking at the output)
+// TODO factor out the Chooser object that walks a path
 
 // TODO it'll be easy to make a meta-guide that round-robins among
 // existing ones
 
 // TODO maybe split this into multiple files but then put them
-// together so in the end there's a single file that people can use
-
-// TODO factor out the Chooser object that walks a path
-
-// TODO make BFS print when it's done with each level
+// together using a script so in the end there's a single file that
+// people can use
 
 // TODO make BFS optionally sometimes sample from lower depths
 
@@ -170,9 +164,6 @@ bool BFSGuide::start() {
    */
   auto [OptionalNode, SavedLevel] = PendingPaths.removeHead();
   if (OptionalNode.has_value()) {
-    if (Debug)
-      std::cout << "  Starting a saved path down to level " << SavedLevel
-                << "\n";
     auto N = OptionalNode.value();
     Node *N2 = nullptr;
     // this loop walks up to the root, saving the decision
