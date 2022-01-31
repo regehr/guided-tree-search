@@ -28,12 +28,6 @@
 // TODO
 
 /*
- * tree where degree decreases by one every time we descend a level
- */
-
-// TODO
-
-/*
  * maximally unbalanced n-ary tree
  */
 static unsigned long test_maximally_unbalanced_helper(tree_guide::Guide &G,
@@ -224,6 +218,32 @@ static unsigned long test_increasing_degree_tree(tree_guide::Guide &G,
   return test_increasing_degree_tree_helper(G, TreeDepth, 0, 1);
 }
 
+/*
+ * tree where degree decreases by one every time we descend a level
+ */
+
+static unsigned long test_decreasing_degree_tree_helper(tree_guide::Guide &G,
+                                                        int Depth, int Number,
+                                                        int BranchFactor) {
+  if (Depth == 0) {
+    return Number;
+  } else {
+    return test_decreasing_degree_tree_helper(
+        G, Depth - 1, (BranchFactor * Number) + G.choose(BranchFactor),
+        BranchFactor - 1);
+  }
+}
+
+static unsigned long test_decreasing_degree_tree(tree_guide::Guide &G,
+                                                 long &NumLeaves) {
+  const int TreeDepth = 6;
+  NumLeaves = 1;
+  for (int i = 1; i <= TreeDepth; ++i)
+    NumLeaves *= i;
+
+  return test_decreasing_degree_tree_helper(G, TreeDepth, 0, TreeDepth);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 #if 0
@@ -297,6 +317,7 @@ int main() {
   RUN_TEST(right_skewed_tree);
   RUN_TEST(path_with_thickets);
   RUN_TEST(increasing_degree_tree);
+  RUN_TEST(decreasing_degree_tree);
 
   return 0;
 }
