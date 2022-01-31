@@ -290,7 +290,8 @@ void run_test(std::string Name,
   std::cout << "total = " << total << "\n";
 
   if (NumLeaves != -1) {
-      std::cout << "Expected NumLeaves: " << NumLeaves << ", Actual leaves: " << Results.size() << std::endl;
+    std::cout << "Expected NumLeaves: " << NumLeaves
+              << ", Actual leaves: " << Results.size() << std::endl;
   }
 
   /*
