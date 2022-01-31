@@ -86,6 +86,8 @@ static const bool Debug = false;
 // TODO just inline this file at some point
 #include "priq.h"
 
+class Guide;
+
 // abstract base class for all of the choosers
 class Chooser {
 public:
@@ -93,6 +95,7 @@ public:
   virtual ~Chooser() = default;
   virtual long pick(long n) = 0;
   bool flip() { return pick(2); }
+  friend class Guide; // TODO is this needed?
 };
 
 // abstract base class for all of the guides
@@ -106,11 +109,20 @@ public:
   virtual Chooser& makeChooser() = 0;
   virtual long choose(long n) = 0;
   virtual bool flip() { return choose(2); }
+  friend class Chooser; // TODO is this needed?
 };
 
+/*
+ * BFSGuide: exhaustive breadth-first exploration of the decision
+ * tree, reverting to random choices once beyond the BFS frontier
+ */
+
+class BFSGuide;
+
 class BFSChooser : public Chooser {
+  BFSGuide& G;
 public:
-  BFSChooser() {}
+  BFSChooser(BFSGuide &_G) : G(_G) {}
   ~BFSChooser() {}
   long pick(long n) { return n; }
 };
@@ -141,7 +153,7 @@ public:
   ~BFSGuide() {}
 
   virtual Chooser& makeChooser() {
-    auto C = new BFSChooser();
+    auto C = new BFSChooser(*this);
     return *C;
   }
 
@@ -212,6 +224,7 @@ bool BFSGuide::start() {
                     << " to saved choice above target node\n";
       } else {
         // we're at the target node, so find an untaken branch
+        // TODO: this is deterministic, it would be better to pick a random one
         long NumUntaken = 0;
         for (long i = 0; i < S; ++i) {
           if (Debug)
@@ -337,9 +350,10 @@ long BFSGuide::choose(long Choices) {
 bool BFSGuide::flip() { return choose(2); }
 
 /*
- * the point of this class is to offer the naive alternative to the
- * smarter generator, as a basis for comparison and so people can get
- * used to the API without the heavyweight path selection stuff going on
+ * DefaultGuide: the point of this class is to offer the naive
+ * alternative to the smarter generator, as a basis for comparison and
+ * so people can get used to the API without the heavyweight path
+ * selection stuff going on
  */
 class DefaultGuide : public Guide {
   std::unique_ptr<std::mt19937_64> Rand;
