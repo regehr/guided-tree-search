@@ -84,6 +84,7 @@ static const bool Debug = false;
 // TODO just inline this file at some point
 #include "priq.h"
 
+// abstract base class for all of the guides
 class Guide {
 public:
   Guide() {}
@@ -169,7 +170,8 @@ bool BFSGuide::start() {
 
     auto N = OptionalNode.value();
     Node *N2 = nullptr;
-    // this loop walks up to the root, saving the decision
+    // this loop walks up to the root, saving the decisions that we
+    // have to make to get back down here
     do {
       long Next = -1;
       long S = N->Children.size();
@@ -202,8 +204,8 @@ bool BFSGuide::start() {
         // this node should not have been there if there wasn't a branch
         // left to explore
         assert(NumUntaken > 0);
-        // if there's at least one more unexplored branch, put this node
-        // back at the end of its priority queue
+        // if there's at least one remaining unexplored branch, put
+        // this node back at the end of its priority queue
         if (NumUntaken > 1) {
           if (Debug)
             std::cout << "  Re-inserting node\n";
@@ -216,9 +218,6 @@ bool BFSGuide::start() {
       N = N->Parent;
     } while (N != Root.get());
 
-    // TODO: print something when we finish a level and assert that it
-    // doesn't come back
-
     return true;
   }
   /*
@@ -226,7 +225,10 @@ bool BFSGuide::start() {
    * explore; we're done. this is not going to happen in practice for
    * realistic applications. however, in the future we might wish to
    * implement uniform sampling of the leaves; now that we have the
-   * entire decision tree this is not difficult.
+   * entire decision tree this is not difficult. sampling a leaf more
+   * than once only makes sense if we allow random decisions that
+   * don't cause branching in the tree, generators could use this to
+   * generate things like wide literal constants
    */
   if (Debug)
     std::cout << "  Tree has been completely explored!\n";
@@ -236,8 +238,8 @@ bool BFSGuide::start() {
 void BFSGuide::finish() {
   assert(!Finished);
   Finished = true;
-  // FIXME -- at scale this allocation will greatly increase memory
-  // usage, do this a different way
+  // FIXME -- at scale this allocation will double our RAM usage, so
+  // eventually do this a different way
   if (!Current->Children.at(LastChoice).get()) {
     Current->Children.at(LastChoice) = std::make_unique<Node>();
     TotalNodes++;
@@ -262,8 +264,8 @@ long BFSGuide::choose(long Choices) {
      */
     if ((unsigned long)Choices != N->Children.size()) {
       // TODO it's unfriendly to exit here, but this is a critical API
-      // violation and it's not clear how to proceed once it has
-      // happened
+      // violation. alternatively, of course we could throw an
+      // exception
       std::cout << "ERROR: Reached same node again, but different "
                    "number of choices this time\n";
       exit(-1);
