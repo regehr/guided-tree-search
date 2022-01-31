@@ -14,6 +14,8 @@
 // TODO it'll be easy to make a meta-guide that round-robins among
 // existing ones
 
+// TODO leak checking in the cmakefile
+
 // TODO maybe split this into multiple files but then put them
 // together using a script so in the end there's a single file that
 // people can use
@@ -84,6 +86,15 @@ static const bool Debug = false;
 // TODO just inline this file at some point
 #include "priq.h"
 
+// abstract base class for all of the choosers
+class Chooser {
+public:
+  Chooser() {}
+  virtual ~Chooser() = default;
+  virtual long pick(long n) = 0;
+  bool flip() { return pick(2); }
+};
+
 // abstract base class for all of the guides
 class Guide {
 public:
@@ -92,8 +103,16 @@ public:
   virtual ~Guide() = default;
   virtual bool start() = 0;
   virtual void finish() = 0;
+  virtual Chooser& makeChooser() = 0;
   virtual long choose(long n) = 0;
-  bool flip() { return choose(2); }
+  virtual bool flip() { return choose(2); }
+};
+
+class BFSChooser : public Chooser {
+public:
+  BFSChooser() {}
+  ~BFSChooser() {}
+  long pick(long n) { return n; }
 };
 
 class BFSGuide : public Guide {
@@ -120,6 +139,11 @@ public:
   }
   BFSGuide() : BFSGuide(std::random_device{}()) {}
   ~BFSGuide() {}
+
+  virtual Chooser& makeChooser() {
+    auto C = new BFSChooser();
+    return *C;
+  }
 
   /*
    * TODO these will be constructor/destructor of a Chooser object
