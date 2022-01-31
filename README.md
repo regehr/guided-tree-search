@@ -43,8 +43,9 @@ probability 1/128. In realistic situations, we have observed that
 there are interesting outputs that are effectively impossible to
 generate, due to this effect.
 
-The problem statement, then, is to automatically adjust probabilities
-in such a way that T1..T8 are reached with uniform probability. Of
+The problem statement, then, is to do a better job exploring this sort
+of decision tree. One way to do that -- but certainly not the only one
+-- is to attempt to visit the leaves with uniform probability. Of
 course uniform probabilities are unlikely to be the optimal ones, but
 our hypothesis is that uniform sampling is, in general, a much better
 problem to have than unknown, difficult-to-fix biases. You should view

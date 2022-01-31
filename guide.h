@@ -1,5 +1,5 @@
-#ifndef UNIFORM_GENERATOR_H_
-#define UNIFORM_GENERATOR_H_
+#ifndef TREE_GUIDE_H_
+#define TREE_GUIDE_H_
 
 #include <cassert>
 #include <iostream>
@@ -73,7 +73,7 @@
   long choose_noeffect(long n);
 #endif
 
-namespace uniform {
+namespace tree_guide {
 
 #ifdef _DEBUG
 static const bool Debug = true;
@@ -329,6 +329,6 @@ public:
   bool flip() { return choose(2); }
 };
 
-} // namespace uniform
+} // namespace tree_guide
 
 #endif

@@ -29,7 +29,7 @@
 /*
  * maximally unbalanced n-ary tree
  */
-static unsigned long test_maximally_unbalanced_helper(uniform::Guide &G,
+static unsigned long test_maximally_unbalanced_helper(tree_guide::Guide &G,
                                                       int Depth, int Number,
                                                       int BranchFactor) {
   if (Depth == 0)
@@ -41,7 +41,7 @@ static unsigned long test_maximally_unbalanced_helper(uniform::Guide &G,
       G, Depth - 1, Number + BranchFactor - 1, BranchFactor);
 }
 
-static unsigned long test_maximally_unbalanced(uniform::Guide &G,
+static unsigned long test_maximally_unbalanced(tree_guide::Guide &G,
                                                long &NumLeaves) {
   const int TreeDepth = 5;
   const int BranchFactor = 17;
@@ -53,7 +53,7 @@ static unsigned long test_maximally_unbalanced(uniform::Guide &G,
 /*
  * full tree
  */
-static unsigned long test_full_tree_helper(uniform::Guide &G, int Depth,
+static unsigned long test_full_tree_helper(tree_guide::Guide &G, int Depth,
                                            int Number, int BranchFactor) {
   if (Depth == 0) {
     return Number;
@@ -72,8 +72,7 @@ static long ipow(long x, long y) {
   return Result;
 }
 
-static unsigned long test_full_tree(uniform::Guide &G,
-                                    long &NumLeaves) {
+static unsigned long test_full_tree(tree_guide::Guide &G, long &NumLeaves) {
   const int TreeDepth = 6;
   const int BranchFactor = 2;
   NumLeaves = ipow(BranchFactor, TreeDepth);
@@ -92,7 +91,7 @@ static unsigned long test_full_tree(uniform::Guide &G,
  * larger than the left branches, so should be picked much more often.
  */
 
-static unsigned long test_right_skewed_tree_left_tree(uniform::Guide &G,
+static unsigned long test_right_skewed_tree_left_tree(tree_guide::Guide &G,
                                                       int Depth, int Number) {
 
   if (Depth == 0)
@@ -103,8 +102,8 @@ static unsigned long test_right_skewed_tree_left_tree(uniform::Guide &G,
   return test_right_skewed_tree_left_tree(G, Depth - 1, Number + 1);
 }
 
-static unsigned long test_right_skewed_tree_helper(uniform::Guide &G, int Depth,
-                                                   int Number) {
+static unsigned long test_right_skewed_tree_helper(tree_guide::Guide &G,
+                                                   int Depth, int Number) {
   if (Depth == 0)
     return Number;
   auto Choice = G.choose(2);
@@ -113,7 +112,7 @@ static unsigned long test_right_skewed_tree_helper(uniform::Guide &G, int Depth,
   return test_right_skewed_tree_helper(G, Depth - 1, Number + Depth);
 }
 
-static unsigned long test_right_skewed_tree(uniform::Guide &G,
+static unsigned long test_right_skewed_tree(tree_guide::Guide &G,
                                             long &NumLeaves) {
   const int TreeDepth = 6;
 
@@ -131,7 +130,7 @@ static unsigned long test_right_skewed_tree(uniform::Guide &G,
  * finding where the bulk of the tree lies.
  */
 
-static unsigned long test_path_with_thickets_bush(uniform::Guide &G,
+static unsigned long test_path_with_thickets_bush(tree_guide::Guide &G,
                                                   unsigned long Size,
                                                   unsigned long Number) {
   assert(Size > 0);
@@ -147,7 +146,7 @@ static unsigned long test_path_with_thickets_bush(uniform::Guide &G,
                                         Number + LargeSubtreeSize);
 }
 
-static unsigned long test_path_with_thickets_helper(uniform::Guide &G,
+static unsigned long test_path_with_thickets_helper(tree_guide::Guide &G,
                                                     unsigned long Size,
                                                     unsigned long Number,
                                                     unsigned long BushSize,
@@ -173,7 +172,7 @@ static unsigned long test_path_with_thickets_helper(uniform::Guide &G,
   }
 }
 
-static unsigned long test_path_with_thickets(uniform::Guide &G,
+static unsigned long test_path_with_thickets(tree_guide::Guide &G,
                                              long &NumLeaves) {
   const int Size = 50;
   const int BushSize = 8;
@@ -185,7 +184,7 @@ static unsigned long test_path_with_thickets(uniform::Guide &G,
  * tree where degree increases by one every time we descend a level
  */
 
-static unsigned long test_increasing_degree_tree_helper(uniform::Guide &G,
+static unsigned long test_increasing_degree_tree_helper(tree_guide::Guide &G,
                                                         int Depth, int Number,
                                                         int BranchFactor) {
   if (Depth == 0) {
@@ -197,7 +196,7 @@ static unsigned long test_increasing_degree_tree_helper(uniform::Guide &G,
   }
 }
 
-static unsigned long test_increasing_degree_tree(uniform::Guide &G,
+static unsigned long test_increasing_degree_tree(tree_guide::Guide &G,
                                                  long &NumLeaves) {
   const int TreeDepth = 6;
   NumLeaves = 1;
@@ -218,10 +217,11 @@ static const bool Debug = false;
 #endif
 
 void run_test(std::string Name,
-              unsigned long (*TestFunction)(uniform::Guide &, long &NumLeaves)) {
+              unsigned long (*TestFunction)(tree_guide::Guide &,
+                                            long &NumLeaves)) {
   const int REPS = 1000 * 1000;
   std::vector<int> Results;
-  uniform::BFSGuide G;
+  tree_guide::BFSGuide G;
 
   auto hline = std::string(40, '-');
 
@@ -258,7 +258,7 @@ void run_test(std::string Name,
   assert(NumLeaves == -1 || NumLeaves == (long)Results.size());
   for (unsigned long i = 0; i < Results.size(); ++i)
     assert(Results.at(i) == 1);
-  
+
   if (EarlyExit)
     assert(total <= REPS);
   else
