@@ -106,7 +106,6 @@ public:
   virtual ~Guide() = default;
   virtual bool start() = 0;
   virtual void finish() = 0;
-  virtual Chooser& makeChooser() = 0;
   virtual long choose(long n) = 0;
   virtual bool flip() { return choose(2); }
   friend class Chooser; // TODO is this needed?
@@ -120,12 +119,17 @@ public:
 class BFSGuide;
 
 class BFSChooser : public Chooser {
-  BFSGuide& G;
+  BFSGuide &G;
+
 public:
-  BFSChooser(BFSGuide &_G) : G(_G) {}
-  ~BFSChooser() {}
+  BFSChooser(BFSGuide &_G);
+  ~BFSChooser();
   long pick(long n) { return n; }
 };
+
+BFSChooser::BFSChooser(BFSGuide &_G) : G(_G) {}
+
+BFSChooser::~BFSChooser() {}
 
 class BFSGuide : public Guide {
   struct Node {
@@ -151,11 +155,6 @@ public:
   }
   BFSGuide() : BFSGuide(std::random_device{}()) {}
   ~BFSGuide() {}
-
-  virtual Chooser& makeChooser() {
-    auto C = new BFSChooser(*this);
-    return *C;
-  }
 
   /*
    * TODO these will be constructor/destructor of a Chooser object
