@@ -123,6 +123,16 @@ static unsigned long test_right_skewed_tree(tree_guide::Guide &G,
                                             long &NumLeaves) {
   const int TreeDepth = 6;
 
+  // A left tree of depth N has N + 1 leaves - one on the right, and N
+  // for each left branch.
+  // A right tree of depth 0 has 1 leaf. A right tree of depth N + 1 has
+  // a left tree of depth N and a right tree of depth N underneath it,
+  // so the size R_n is defined by R_0 = 1, and R_{n + 1} = R_n + L_n.
+  // = R_n + n + 1.
+  // So R_n = n + ... + 1 R_0 = n (n + 1) / 2 + 1
+
+  NumLeaves = (6 * 7) / 2 + 1;
+
   return test_right_skewed_tree_helper(G, TreeDepth, 0);
 }
 /*
@@ -183,6 +193,7 @@ static unsigned long test_path_with_thickets(tree_guide::Guide &G,
                                              long &NumLeaves) {
   const int Size = 50;
   const int BushSize = 8;
+  NumLeaves = Size;
 
   return test_path_with_thickets_helper(G, Size, 0, BushSize, true);
 }
@@ -257,6 +268,10 @@ void run_test(std::string Name,
     total += Results.at(i);
   }
   std::cout << "total = " << total << "\n";
+
+  if (NumLeaves != -1) {
+      std::cout << "Expected NumLeaves: " << NumLeaves << ", Actual leaves: " << Results.size() << std::endl;
+  }
 
   /*
    * this only works for guides that visit each leaf once and then
