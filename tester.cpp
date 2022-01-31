@@ -21,6 +21,13 @@
  */
 
 /*
+ * tree that we precompute totally randomly in advance, bounded only
+ * by depth and maximum degree
+ */
+
+// TODO
+
+/*
  * tree where degree decreases by one every time we descend a level
  */
 

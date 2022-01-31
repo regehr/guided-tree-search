@@ -104,8 +104,7 @@ class BFSGuide : public Guide {
   long TotalNodes = 0;
   std::unique_ptr<Node> Root;
   Node *Current;
-  long LastChoice;
-  long Level;
+  long LastChoice, Level, MaxSavedLevel;
   bool Started = false, Finished = true;
   std::unique_ptr<std::mt19937_64> Rand;
   // this vector is in reverse order so we can pop stuff efficiently
@@ -146,6 +145,7 @@ bool BFSGuide::start() {
   assert(SavedChoices.empty());
   Current = &*Root;
   LastChoice = 0;
+  MaxSavedLevel = -1;
   Level = 0;
   /*
    * case 1: this is the first traversal; we've not yet seen any of
@@ -164,6 +164,9 @@ bool BFSGuide::start() {
    */
   auto [OptionalNode, SavedLevel] = PendingPaths.removeHead();
   if (OptionalNode.has_value()) {
+    assert(SavedLevel >= MaxSavedLevel);
+    MaxSavedLevel = SavedLevel;
+
     auto N = OptionalNode.value();
     Node *N2 = nullptr;
     // this loop walks up to the root, saving the decision
@@ -211,7 +214,6 @@ bool BFSGuide::start() {
       SavedChoices.push_back(Next);
       N2 = N;
       N = N->Parent;
-      Level--;
     } while (N != Root.get());
 
     // TODO: print something when we finish a level and assert that it
@@ -245,7 +247,7 @@ void BFSGuide::finish() {
 long BFSGuide::choose(long Choices) {
   assert(Started);
   if (Debug) {
-    std::cout << "choose(" << Choices << ") at Level " << Level << " \n";
+    std::cout << "choose(" << Choices << ")\n";
     std::cout << "  Current = " << Current << ", LastChoice = " << LastChoice
               << "\n";
   }
