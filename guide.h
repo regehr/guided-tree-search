@@ -11,22 +11,25 @@
 
 // TODO factor out the Chooser object that walks a path
 
-// TODO it'll be easy to make a meta-guide that round-robins among
-// existing ones
-
 // TODO leak checking in the cmakefile
 
 // TODO maybe split this into multiple files but then put them
 // together using a script so in the end there's a single file that
 // people can use
 
-// TODO make BFS optionally sometimes sample from lower depths
+// TODO make BFS optionally sometimes sample from lower depths, or
+// even round-robin among levels with available work
+
+// TODO probably should look at the priority queue in the middle of
+// some runs and see how big the buckets are getting
 
 // TODO make everything here consistent with GLOSSARY.md
 
 // TODO cardinality estimator guide
 
 // TODO coverage-driven guide
+
+// TODO meta-guide that round-robins among existing ones
 
 // TODO support hierarchy/grouping in the stream of choices
 
