@@ -357,8 +357,118 @@ public:
   bool flip() { return choose(2); }
 };
 
-#endif
+class WeightedSamplerGuide : public Guide {
+  struct Node {
+    bool visited = false;
+    std::vector<std::unique_ptr<Node>> Children;
+    double SizeEstimate;
 
+    Node() {}
+
+    void visit(size_t n) {
+      if (this->visited) {
+        assert(n == this->Children.size());
+      } else {
+        this->Children.resize(n);
+        this->visited = true;
+        this->SizeEstimate = n;
+      }
+    }
+  };
+
+  std::unique_ptr<Node> Root;
+  std::vector<Node *> Trail;
+  std::unique_ptr<std::mt19937_64> Rand;
+
+public:
+  WeightedSamplerGuide(long Seed) {
+    this->Root = std::make_unique<Node>();
+    this->Rand = std::make_unique<std::mt19937_64>(Seed);
+  }
+  WeightedSamplerGuide() : WeightedSamplerGuide(std::random_device{}()) {}
+  ~WeightedSamplerGuide() {}
+
+  /*
+   * TODO these will be constructor/destructor of a Chooser object
+   */
+  bool start() {
+    this->Trail.clear();
+    this->Trail.push_back(this->Root.get());
+    return true;
+  };
+  void finish() {
+    this->Trail.back()->SizeEstimate = 1.0;
+    this->Trail.pop_back();
+    while (this->Trail.size() > 0) {
+      Node *last = this->Trail.back();
+      double occupied = 0.0;
+      double total = 0.0;
+      for (auto &child : last->Children) {
+        if (child != nullptr) {
+          occupied += 1.0;
+          total += child->SizeEstimate;
+        }
+      }
+
+      last->SizeEstimate = last->Children.size() * total / occupied;
+
+      this->Trail.pop_back();
+    }
+  };
+
+  /*
+   * return a number in 0..n
+   */
+  long choose(long n) {
+    Node *current = this->Trail.back();
+    current->visit(n);
+    double count = 0;
+    double total_weight = 0;
+
+    for (auto &child : current->Children) {
+      if (child != nullptr) {
+        count += 1;
+        total_weight += child->SizeEstimate;
+      }
+    }
+
+    long result;
+
+    if (count == 0) {
+      std::uniform_int_distribution<long> Dist(0, n - 1);
+      result = Dist(*this->Rand);
+    } else {
+      double unknown_size = total_weight / count;
+
+      std::vector<double> weights;
+      for (auto &child : current->Children) {
+        if (child == nullptr) {
+          weights.push_back(unknown_size);
+        } else {
+          weights.push_back(child->SizeEstimate);
+        }
+      }
+      std::discrete_distribution<long> Dist(weights.begin(), weights.end());
+      result = Dist(*this->Rand);
+    }
+
+    Node *next_node = current->Children[result].get();
+    if (next_node == nullptr) {
+      next_node = (current->Children[result] = std::make_unique<Node>()).get();
+    }
+
+    this->Trail.push_back(next_node);
+    return result;
+  }
+
+  /*
+   * shorthand for choose(2)
+   */
+  bool flip();
+};
+
+#endif
+  
 } // namespace tree_guide
 
 #endif
