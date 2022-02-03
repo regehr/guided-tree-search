@@ -30,37 +30,37 @@
 /*
  * maximally unbalanced n-ary tree
  */
-static unsigned long test_maximally_unbalanced_helper(tree_guide::Guide &G,
+static unsigned long test_maximally_unbalanced_helper(tree_guide::Chooser &C,
                                                       int Depth, int Number,
                                                       int BranchFactor) {
   if (Depth == 0)
     return Number;
-  auto Choice = G.choose(BranchFactor);
+  auto Choice = C.choose(BranchFactor);
   if (Choice != (BranchFactor - 1))
     return Number + Choice;
   return test_maximally_unbalanced_helper(
-      G, Depth - 1, Number + BranchFactor - 1, BranchFactor);
+      C, Depth - 1, Number + BranchFactor - 1, BranchFactor);
 }
 
-static unsigned long test_maximally_unbalanced(tree_guide::Guide &G,
+static unsigned long test_maximally_unbalanced(tree_guide::Chooser &C,
                                                long &NumLeaves) {
   const int TreeDepth = 5;
   const int BranchFactor = 17;
   NumLeaves = (BranchFactor - 1) * (TreeDepth - 1) + BranchFactor;
 
-  return test_maximally_unbalanced_helper(G, TreeDepth, 0, BranchFactor);
+  return test_maximally_unbalanced_helper(C, TreeDepth, 0, BranchFactor);
 }
 
 /*
  * full tree
  */
-static unsigned long test_full_tree_helper(tree_guide::Guide &G, int Depth,
+static unsigned long test_full_tree_helper(tree_guide::Chooser &C, int Depth,
                                            int Number, int BranchFactor) {
   if (Depth == 0) {
     return Number;
   } else {
     return test_full_tree_helper(
-        G, Depth - 1, (BranchFactor * Number) + G.choose(BranchFactor),
+        C, Depth - 1, (BranchFactor * Number) + C.choose(BranchFactor),
         BranchFactor);
   }
 }
@@ -73,12 +73,12 @@ static long ipow(long x, long y) {
   return Result;
 }
 
-static unsigned long test_full_tree(tree_guide::Guide &G, long &NumLeaves) {
+static unsigned long test_full_tree(tree_guide::Chooser &C, long &NumLeaves) {
   const int TreeDepth = 6;
   const int BranchFactor = 2;
   NumLeaves = ipow(BranchFactor, TreeDepth);
 
-  return test_full_tree_helper(G, TreeDepth, 0, BranchFactor);
+  return test_full_tree_helper(C, TreeDepth, 0, BranchFactor);
 }
 
 /*
@@ -92,28 +92,28 @@ static unsigned long test_full_tree(tree_guide::Guide &G, long &NumLeaves) {
  * larger than the left branches, so should be picked much more often.
  */
 
-static unsigned long test_right_skewed_tree_left_tree(tree_guide::Guide &G,
+static unsigned long test_right_skewed_tree_left_tree(tree_guide::Chooser &C,
                                                       int Depth, int Number) {
 
   if (Depth == 0)
     return Number;
-  auto Choice = G.choose(2);
+  auto Choice = C.choose(2);
   if (Choice == 1)
     return Number;
-  return test_right_skewed_tree_left_tree(G, Depth - 1, Number + 1);
+  return test_right_skewed_tree_left_tree(C, Depth - 1, Number + 1);
 }
 
-static unsigned long test_right_skewed_tree_helper(tree_guide::Guide &G,
+static unsigned long test_right_skewed_tree_helper(tree_guide::Chooser &C,
                                                    int Depth, int Number) {
   if (Depth == 0)
     return Number;
-  auto Choice = G.choose(2);
+  auto Choice = C.choose(2);
   if (Choice == 0)
-    return test_right_skewed_tree_left_tree(G, Depth - 1, Number);
-  return test_right_skewed_tree_helper(G, Depth - 1, Number + Depth);
+    return test_right_skewed_tree_left_tree(C, Depth - 1, Number);
+  return test_right_skewed_tree_helper(C, Depth - 1, Number + Depth);
 }
 
-static unsigned long test_right_skewed_tree(tree_guide::Guide &G,
+static unsigned long test_right_skewed_tree(tree_guide::Chooser &C,
                                             long &NumLeaves) {
   const int TreeDepth = 6;
 
@@ -127,7 +127,7 @@ static unsigned long test_right_skewed_tree(tree_guide::Guide &G,
 
   NumLeaves = (6 * 7) / 2 + 1;
 
-  return test_right_skewed_tree_helper(G, TreeDepth, 0);
+  return test_right_skewed_tree_helper(C, TreeDepth, 0);
 }
 /*
  * This tree offers a long dangly path with "bushes" (complete or
@@ -141,7 +141,7 @@ static unsigned long test_right_skewed_tree(tree_guide::Guide &G,
  * finding where the bulk of the tree lies.
  */
 
-static unsigned long test_path_with_thickets_bush(tree_guide::Guide &G,
+static unsigned long test_path_with_thickets_bush(tree_guide::Chooser &C,
                                                   unsigned long Size,
                                                   unsigned long Number) {
   assert(Size > 0);
@@ -150,14 +150,14 @@ static unsigned long test_path_with_thickets_bush(tree_guide::Guide &G,
 
   unsigned long LargeSubtreeSize = Size / 2;
 
-  if (G.choose(2) == 0)
-    return test_path_with_thickets_bush(G, LargeSubtreeSize, Number);
+  if (C.choose(2) == 0)
+    return test_path_with_thickets_bush(C, LargeSubtreeSize, Number);
   else
-    return test_path_with_thickets_bush(G, Size - LargeSubtreeSize,
+    return test_path_with_thickets_bush(C, Size - LargeSubtreeSize,
                                         Number + LargeSubtreeSize);
 }
 
-static unsigned long test_path_with_thickets_helper(tree_guide::Guide &G,
+static unsigned long test_path_with_thickets_helper(tree_guide::Chooser &C,
                                                     unsigned long Size,
                                                     unsigned long Number,
                                                     unsigned long BushSize,
@@ -165,83 +165,83 @@ static unsigned long test_path_with_thickets_helper(tree_guide::Guide &G,
   assert(Size > 0);
 
   if (Size <= BushSize)
-    return test_path_with_thickets_bush(G, Size, Number);
+    return test_path_with_thickets_bush(C, Size, Number);
 
   if (BushLeft) {
-    if (G.choose(2) == 0)
-      return test_path_with_thickets_bush(G, BushSize, Number);
+    if (C.choose(2) == 0)
+      return test_path_with_thickets_bush(C, BushSize, Number);
     else
       return test_path_with_thickets_helper(
-          G, Size - BushSize, Number + BushSize, BushSize, !BushLeft);
+          C, Size - BushSize, Number + BushSize, BushSize, !BushLeft);
   } else {
-    if (G.choose(2) == 1)
-      return test_path_with_thickets_bush(G, BushSize,
+    if (C.choose(2) == 1)
+      return test_path_with_thickets_bush(C, BushSize,
                                           Number + Size - BushSize);
     else
-      return test_path_with_thickets_helper(G, Size - BushSize, Number,
+      return test_path_with_thickets_helper(C, Size - BushSize, Number,
                                             BushSize, !BushLeft);
   }
 }
 
-static unsigned long test_path_with_thickets(tree_guide::Guide &G,
+static unsigned long test_path_with_thickets(tree_guide::Chooser &C,
                                              long &NumLeaves) {
   const int Size = 50;
   const int BushSize = 8;
   NumLeaves = Size;
 
-  return test_path_with_thickets_helper(G, Size, 0, BushSize, true);
+  return test_path_with_thickets_helper(C, Size, 0, BushSize, true);
 }
 
 /*
  * tree where degree increases by one every time we descend a level
  */
 
-static unsigned long test_increasing_degree_tree_helper(tree_guide::Guide &G,
+static unsigned long test_increasing_degree_tree_helper(tree_guide::Chooser &C,
                                                         int Depth, int Number,
                                                         int BranchFactor) {
   if (Depth == 0) {
     return Number;
   } else {
     return test_increasing_degree_tree_helper(
-        G, Depth - 1, (BranchFactor * Number) + G.choose(BranchFactor),
+        C, Depth - 1, (BranchFactor * Number) + C.choose(BranchFactor),
         BranchFactor + 1);
   }
 }
 
-static unsigned long test_increasing_degree_tree(tree_guide::Guide &G,
+static unsigned long test_increasing_degree_tree(tree_guide::Chooser &C,
                                                  long &NumLeaves) {
   const int TreeDepth = 6;
   NumLeaves = 1;
   for (int i = 1; i <= TreeDepth; ++i)
     NumLeaves *= i;
 
-  return test_increasing_degree_tree_helper(G, TreeDepth, 0, 1);
+  return test_increasing_degree_tree_helper(C, TreeDepth, 0, 1);
 }
 
 /*
  * tree where degree decreases by one every time we descend a level
  */
 
-static unsigned long test_decreasing_degree_tree_helper(tree_guide::Guide &G,
+static unsigned long test_decreasing_degree_tree_helper(tree_guide::Chooser &C,
                                                         int Depth, int Number,
                                                         int BranchFactor) {
   if (Depth == 0) {
     return Number;
   } else {
     return test_decreasing_degree_tree_helper(
-        G, Depth - 1, (BranchFactor * Number) + G.choose(BranchFactor),
+        C, Depth - 1, (BranchFactor * Number) + C.choose(BranchFactor),
         BranchFactor - 1);
   }
 }
 
-static unsigned long test_decreasing_degree_tree(tree_guide::Guide &G,
+static unsigned long test_decreasing_degree_tree(tree_guide::Chooser &C,
                                                  long &NumLeaves) {
   const int TreeDepth = 6;
   NumLeaves = 1;
   for (int i = 1; i <= TreeDepth; ++i)
     NumLeaves *= i;
 
-  return test_decreasing_degree_tree_helper(G, TreeDepth, 0, TreeDepth);
+  return test_decreasing_degree_tree_helper(C, TreeDepth, 0, TreeDepth);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -255,7 +255,7 @@ static const bool Debug = false;
 #endif
 
 void run_test(std::string Name,
-              unsigned long (*TestFunction)(tree_guide::Guide &,
+              unsigned long (*TestFunction)(tree_guide::Chooser &,
                                             long &NumLeaves)) {
   const int REPS = 1000 * 1000;
   std::vector<int> Results;
@@ -271,15 +271,15 @@ void run_test(std::string Name,
   bool EarlyExit = false;
   long NumLeaves = -1;
   for (int rep = 0; rep < REPS; ++rep) {
-    if (!G.start()) {
+    auto C = G.makeChooser();
+    if (!C) {
       EarlyExit = true;
       break;
     }
-    auto Res = TestFunction(G, NumLeaves);
+    auto Res = TestFunction(*C, NumLeaves);
     if (Res >= Results.size())
       Results.resize(Res + 1);
     ++Results.at(Res);
-    G.finish();
   }
 
   int total = 0;

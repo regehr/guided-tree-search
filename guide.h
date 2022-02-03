@@ -9,10 +9,6 @@
 #include <random>
 #include <vector>
 
-// TODO factor out the Chooser object that walks a path
-
-// TODO leak checking in the cmakefile
-
 // TODO maybe split this into multiple files but then put them
 // together using a script so in the end there's a single file that
 // people can use
@@ -95,10 +91,9 @@ class Guide;
 class Chooser {
 public:
   Chooser() {}
-  virtual ~Chooser() = default;
-  virtual long pick(long n) = 0;
-  bool flip() { return pick(2); }
-  friend class Guide; // TODO is this needed?
+  virtual ~Chooser() {}
+  virtual long choose(long n) = 0;
+  virtual bool flip() = 0;
 };
 
 // abstract base class for all of the guides
@@ -106,39 +101,40 @@ class Guide {
 public:
   Guide() {}
   Guide(long) {}
-  virtual ~Guide() = default;
-  virtual bool start() = 0;
-  virtual void finish() = 0;
-  virtual long choose(long n) = 0;
-  virtual bool flip() { return choose(2); }
-  friend class Chooser; // TODO is this needed?
+  virtual ~Guide() {}
+  virtual Chooser* makeChooser() = 0;
 };
 
 /*
  * BFSGuide: exhaustive breadth-first exploration of the decision
  * tree, reverting to random choices once beyond the BFS frontier
  */
-
 class BFSGuide;
-
+  
 class BFSChooser : public Chooser {
   BFSGuide &G;
 
 public:
-  BFSChooser(BFSGuide &_G);
+  BFSChooser(BFSGuide &_G) : G(_G) {}
   ~BFSChooser();
-  long pick(long n) { return n; }
+  /*
+   * return a number in 0..n
+   */
+  long choose(long Choices) override;
+
+  /*
+   * shorthand for choose(2)
+   */
+  bool flip() override;
 };
 
-BFSChooser::BFSChooser(BFSGuide &_G) : G(_G) {}
-
-BFSChooser::~BFSChooser() {}
+struct Node {
+  Node *Parent;
+  std::vector<std::unique_ptr<Node>> Children;
+};
 
 class BFSGuide : public Guide {
-  struct Node {
-    Node *Parent;
-    std::vector<std::unique_ptr<Node>> Children;
-  };
+  friend BFSChooser;
 
   long TotalNodes = 0;
   std::unique_ptr<Node> Root;
@@ -151,32 +147,19 @@ class BFSGuide : public Guide {
   PriQ<Node *> PendingPaths;
 
 public:
-  BFSGuide(long Seed) {
-    Root = std::make_unique<Node>();
-    Root->Children.resize(1);
-    Rand = std::make_unique<std::mt19937_64>(Seed);
-  }
+  BFSGuide(long Seed);
   BFSGuide() : BFSGuide(std::random_device{}()) {}
   ~BFSGuide() {}
-
-  /*
-   * TODO these will be constructor/destructor of a Chooser object
-   */
-  bool start();
-  void finish();
-
-  /*
-   * return a number in 0..n
-   */
-  long choose(long n);
-
-  /*
-   * shorthand for choose(2)
-   */
-  bool flip();
+  BFSChooser* makeChooser() override;
 };
 
-bool BFSGuide::start() {
+BFSGuide::BFSGuide(long Seed) {
+  Root = std::make_unique<Node>();
+  Root->Children.resize(1);
+  Rand = std::make_unique<std::mt19937_64>(Seed);
+}
+
+BFSChooser* BFSGuide::makeChooser() {
   assert(Finished);
   Finished = false;
   if (Debug)
@@ -195,7 +178,7 @@ bool BFSGuide::start() {
     if (Debug)
       std::cout << "  First traversal\n";
     Started = true;
-    return true;
+    return new BFSChooser(*this);
   }
   /*
    * case 2: the priority queue has unexplored decisions for us to
@@ -257,7 +240,7 @@ bool BFSGuide::start() {
       N = N->Parent;
     } while (N != Root.get());
 
-    return true;
+    return new BFSChooser(*this);
   }
   /*
    * case 3: the priority queue has run out of things for us to
@@ -271,30 +254,30 @@ bool BFSGuide::start() {
    */
   if (Debug)
     std::cout << "  Tree has been completely explored!\n";
-  return false;
+  return nullptr;
 }
 
-void BFSGuide::finish() {
-  assert(!Finished);
-  Finished = true;
+BFSChooser::~BFSChooser() {
+  assert(!G.Finished);
+  G.Finished = true;
   // FIXME -- at scale this allocation will double our RAM usage, so
   // eventually do this a different way
-  if (!Current->Children.at(LastChoice).get()) {
-    Current->Children.at(LastChoice) = std::make_unique<Node>();
-    TotalNodes++;
+  if (!G.Current->Children.at(G.LastChoice).get()) {
+    G.Current->Children.at(G.LastChoice) = std::make_unique<Node>();
+    G.TotalNodes++;
   }
 }
 
-long BFSGuide::choose(long Choices) {
-  assert(Started);
+long BFSChooser::choose(long Choices) {
+  assert(G.Started);
   if (Debug) {
     std::cout << "choose(" << Choices << ")\n";
-    std::cout << "  Current = " << Current << ", LastChoice = " << LastChoice
+    std::cout << "  Current = " << G.Current << ", LastChoice = " << G.LastChoice
               << "\n";
   }
 
   long Choice;
-  auto N = Current->Children.at(LastChoice).get();
+  auto N = G.Current->Children.at(G.LastChoice).get();
   if (Debug)
     std::cout << "Node pointer = " << N << "\n";
   if (N) {
@@ -309,48 +292,49 @@ long BFSGuide::choose(long Choices) {
                    "number of choices this time\n";
       exit(-1);
     }
-    long NumSavedChoices = SavedChoices.size();
+    long NumSavedChoices = G.SavedChoices.size();
     if (Debug)
       std::cout << "  There are " << NumSavedChoices << " saved choices\n";
     assert(NumSavedChoices > 0);
-    Choice = SavedChoices.at(NumSavedChoices - 1);
+    Choice = G.SavedChoices.at(NumSavedChoices - 1);
     if (Debug)
       std::cout << "  We'll be taking option " << Choice << "\n";
-    SavedChoices.pop_back();
+    G.SavedChoices.pop_back();
   } else {
     /*
      * we're off the beaten path, add this decision node to the tree
      * and make a random choice
      */
-    assert(SavedChoices.size() == 0);
+    assert(G.SavedChoices.size() == 0);
     N = new Node;
-    TotalNodes++;
-    N->Parent = Current;
+    G.TotalNodes++;
+    N->Parent = G.Current;
     N->Children.resize(Choices);
     auto UN = std::unique_ptr<Node>(N);
-    Current->Children.at(LastChoice) = std::move(UN);
+    G.Current->Children.at(G.LastChoice) = std::move(UN);
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
-    Choice = Dist(*Rand);
+    Choice = Dist(*G.Rand);
     /*
      * if there are other options we'll need to get back to them later
      */
     if (Choices > 1) {
       if (Debug)
-        std::cout << "  Inserting node " << N << " at level " << Level
+        std::cout << "  Inserting node " << N << " at level " << G.Level
                   << " with degree " << Choices << "\n";
-      PendingPaths.insert(N, Level);
+      G.PendingPaths.insert(N, G.Level);
     }
   }
-  Current = N;
-  LastChoice = Choice;
-  Level++;
+  G.Current = N;
+  G.LastChoice = Choice;
+  G.Level++;
   if (Debug)
     std::cout << "  returning " << Choice << "\n";
   return Choice;
 }
 
-bool BFSGuide::flip() { return choose(2); }
+bool BFSChooser::flip() { return choose(2); }
 
+#if 0
 /*
  * DefaultGuide: the point of this class is to offer the naive
  * alternative to the smarter generator, as a basis for comparison and
@@ -372,6 +356,8 @@ public:
   }
   bool flip() { return choose(2); }
 };
+
+#endif
 
 } // namespace tree_guide
 
