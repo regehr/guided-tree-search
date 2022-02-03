@@ -271,7 +271,7 @@ void run_test(std::string Name,
   bool EarlyExit = false;
   long NumLeaves = -1;
   for (int rep = 0; rep < REPS; ++rep) {
-    auto C = G.makeChooser();
+    auto C = std::unique_ptr<tree_guide::BFSChooser>(G.makeChooser());
     if (!C) {
       EarlyExit = true;
       break;
@@ -280,7 +280,6 @@ void run_test(std::string Name,
     if (Res >= Results.size())
       Results.resize(Res + 1);
     ++Results.at(Res);
-    delete C;
   }
 
   int total = 0;

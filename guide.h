@@ -92,7 +92,13 @@ class Chooser {
 public:
   Chooser() {}
   virtual ~Chooser() {}
+  /*
+   * return a number in 0..n
+   */
   virtual long choose(long n) = 0;
+  /*
+   * shorthand for choose(2)
+   */
   virtual bool flip() = 0;
 };
 
@@ -117,14 +123,7 @@ class BFSChooser : public Chooser {
 public:
   BFSChooser(BFSGuide &_G) : G(_G) {}
   ~BFSChooser();
-  /*
-   * return a number in 0..n
-   */
   long choose(long Choices) override;
-
-  /*
-   * shorthand for choose(2)
-   */
   bool flip() override;
 };
 
@@ -140,11 +139,11 @@ class BFSGuide : public Guide {
   std::unique_ptr<Node> Root;
   Node *Current;
   long LastChoice, Level, MaxSavedLevel;
-  bool Started = false, Finished = true;
   std::unique_ptr<std::mt19937_64> Rand;
   // this vector is in reverse order so we can pop stuff efficiently
   std::vector<long> SavedChoices;
   PriQ<Node *> PendingPaths;
+  bool Choosing = false, Started = false;
 
 public:
   BFSGuide(long Seed);
@@ -161,9 +160,8 @@ BFSGuide::BFSGuide(long Seed) {
 
 BFSChooser* BFSGuide::makeChooser() {
   if (Debug)
-    std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";  
-  assert(Finished);
-  Finished = false;
+    std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
+  assert(!Choosing);
   assert(SavedChoices.empty());
   Current = &*Root;
   LastChoice = 0;
@@ -178,7 +176,9 @@ BFSChooser* BFSGuide::makeChooser() {
     if (Debug)
       std::cout << "  First traversal\n";
     Started = true;
-    return new BFSChooser(*this);
+    Choosing = true;
+    auto C = new BFSChooser(*this);
+    return C;
   }
   /*
    * case 2: the priority queue has unexplored decisions for us to
@@ -239,8 +239,9 @@ BFSChooser* BFSGuide::makeChooser() {
       N2 = N;
       N = N->Parent;
     } while (N != Root.get());
-
-    return new BFSChooser(*this);
+    Choosing = true;
+    auto C = new BFSChooser(*this);
+    return C;
   }
   /*
    * case 3: the priority queue has run out of things for us to
@@ -258,18 +259,17 @@ BFSChooser* BFSGuide::makeChooser() {
 }
 
 BFSChooser::~BFSChooser() {
-  assert(!G.Finished);
-  G.Finished = true;
   // FIXME -- at scale this allocation will double our RAM usage, so
   // eventually do this a different way
   if (!G.Current->Children.at(G.LastChoice).get()) {
     G.Current->Children.at(G.LastChoice) = std::make_unique<Node>();
     G.TotalNodes++;
   }
+  G.Choosing = false;
 }
 
 long BFSChooser::choose(long Choices) {
-  assert(G.Started);
+  assert(G.Choosing);
   if (Debug) {
     std::cout << "choose(" << Choices << ")\n";
     std::cout << "  Current = " << G.Current << ", LastChoice = " << G.LastChoice
