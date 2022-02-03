@@ -280,6 +280,7 @@ void run_test(std::string Name,
     if (Res >= Results.size())
       Results.resize(Res + 1);
     ++Results.at(Res);
+    delete C;
   }
 
   int total = 0;

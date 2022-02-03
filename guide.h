@@ -160,10 +160,10 @@ BFSGuide::BFSGuide(long Seed) {
 }
 
 BFSChooser* BFSGuide::makeChooser() {
+  if (Debug)
+    std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";  
   assert(Finished);
   Finished = false;
-  if (Debug)
-    std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
   assert(SavedChoices.empty());
   Current = &*Root;
   LastChoice = 0;
