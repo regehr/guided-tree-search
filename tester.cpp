@@ -280,6 +280,7 @@ void run_test(std::string Name,
     if (Res >= Results.size())
       Results.resize(Res + 1);
     ++Results.at(Res);
+    // it's important that the chooser gets destructed now
   }
 
   int total = 0;
