@@ -85,8 +85,6 @@ static const bool Debug = false;
 // TODO just inline this file at some point
 #include "priq.h"
 
-class Guide;
-
 // abstract base class for all of the choosers
 class Chooser {
 protected:
@@ -104,12 +102,12 @@ public:
 };
 
 // abstract base class for all of the guides
-class Guide {
+template<class T> class Guide {
 public:
   Guide() {}
   Guide(long) {}
   virtual ~Guide() {}
-  virtual Chooser* makeChooser() = 0;
+  virtual std::unique_ptr<T> makeChooser() = 0;
 };
 
 /*
@@ -133,7 +131,7 @@ struct Node {
   std::vector<std::unique_ptr<Node>> Children;
 };
 
-class BFSGuide : public Guide {
+class BFSGuide : public Guide<BFSChooser> {
   friend BFSChooser;
 
   long TotalNodes = 0;
@@ -150,7 +148,7 @@ public:
   BFSGuide(long Seed);
   BFSGuide() : BFSGuide(std::random_device{}()) {}
   ~BFSGuide() {}
-  BFSChooser* makeChooser() override;
+  std::unique_ptr<BFSChooser> makeChooser() override;
 };
 
 BFSGuide::BFSGuide(long Seed) {
@@ -159,7 +157,7 @@ BFSGuide::BFSGuide(long Seed) {
   Rand = std::make_unique<std::mt19937_64>(Seed);
 }
 
-BFSChooser* BFSGuide::makeChooser() {
+std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
   if (Debug)
     std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
   assert(!Choosing);
@@ -178,8 +176,7 @@ BFSChooser* BFSGuide::makeChooser() {
       std::cout << "  First traversal\n";
     Started = true;
     Choosing = true;
-    auto C = new BFSChooser(*this);
-    return C;
+    return std::make_unique<BFSChooser>(*this);
   }
   /*
    * case 2: the priority queue has unexplored decisions for us to
@@ -241,8 +238,7 @@ BFSChooser* BFSGuide::makeChooser() {
       N = N->Parent;
     } while (N != Root.get());
     Choosing = true;
-    auto C = new BFSChooser(*this);
-    return C;
+    return std::make_unique<BFSChooser>(*this);
   }
   /*
    * case 3: the priority queue has run out of things for us to

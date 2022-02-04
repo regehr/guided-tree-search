@@ -271,7 +271,7 @@ void run_test(std::string Name,
   bool EarlyExit = false;
   long NumLeaves = -1;
   for (int rep = 0; rep < REPS; ++rep) {
-    auto C = std::unique_ptr<tree_guide::BFSChooser>(G.makeChooser());
+    auto C = G.makeChooser();
     if (!C) {
       EarlyExit = true;
       break;
