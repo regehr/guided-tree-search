@@ -89,8 +89,9 @@ class Guide;
 
 // abstract base class for all of the choosers
 class Chooser {
-public:
+protected:
   Chooser() {}
+public:
   virtual ~Chooser() {}
   /*
    * return a number in 0..n
