@@ -331,29 +331,45 @@ long BFSChooser::choose(long Choices) {
 
 bool BFSChooser::flip() { return choose(2); }
 
-#if 0
 /*
  * DefaultGuide: the point of this class is to offer the naive
  * alternative to the smarter generator, as a basis for comparison and
  * so people can get used to the API without the heavyweight path
  * selection stuff going on
  */
-class DefaultGuide : public Guide {
+
+class DefaultGuide;
+
+class DefaultChooser : public Chooser {
+  DefaultGuide &G;
+
+public:
+  DefaultChooser(DefaultGuide &_G) : G(_G) {}
+  ~DefaultChooser(){};
+  long choose(long Choices) override;
+
+  bool flip() override { return choose(2); }
+};
+
+class DefaultGuide : public Guide<DefaultChooser> {
+  friend DefaultChooser;
   std::unique_ptr<std::mt19937_64> Rand;
 
 public:
   DefaultGuide(long Seed) { Rand = std::make_unique<std::mt19937_64>(Seed); }
   DefaultGuide() : DefaultGuide(std::random_device{}()) {}
   ~DefaultGuide() {}
-  bool start() { return true; }
-  void finish() {}
-  long choose(long Choices) {
-    std::uniform_int_distribution<int> Dist(0, Choices - 1);
-    return Dist(*Rand);
+  std::unique_ptr<DefaultChooser> makeChooser() override {
+    return std::make_unique<DefaultChooser>(*this);
   }
-  bool flip() { return choose(2); }
 };
 
+long DefaultChooser::choose(long Choices) {
+  std::uniform_int_distribution<int> Dist(0, Choices - 1);
+  return Dist(*this->G.Rand);
+}
+
+#if 0
 class WeightedSamplerGuide : public Guide {
   struct Node {
     bool visited = false;
@@ -465,7 +481,7 @@ public:
 };
 
 #endif
-  
+
 } // namespace tree_guide
 
 #endif
