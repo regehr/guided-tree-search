@@ -89,6 +89,7 @@ static const bool Debug = false;
 class Chooser {
 protected:
   Chooser() {}
+
 public:
   virtual ~Chooser() {}
   /*
@@ -102,7 +103,7 @@ public:
 };
 
 // abstract base class for all of the guides
-template<class T> class Guide {
+template <class T> class Guide {
 public:
   Guide() {}
   Guide(long) {}
@@ -115,7 +116,7 @@ public:
  * tree, reverting to random choices once beyond the BFS frontier
  */
 class BFSGuide;
-  
+
 class BFSChooser : public Chooser {
   BFSGuide &G;
 
@@ -269,8 +270,8 @@ long BFSChooser::choose(long Choices) {
   assert(G.Choosing);
   if (Debug) {
     std::cout << "choose(" << Choices << ")\n";
-    std::cout << "  Current = " << G.Current << ", LastChoice = " << G.LastChoice
-              << "\n";
+    std::cout << "  Current = " << G.Current
+              << ", LastChoice = " << G.LastChoice << "\n";
   }
 
   long Choice;
