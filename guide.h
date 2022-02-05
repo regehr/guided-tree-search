@@ -115,28 +115,17 @@ public:
  * BFSGuide: exhaustive breadth-first exploration of the decision
  * tree, reverting to random choices once beyond the BFS frontier
  */
-class BFSGuide;
-
-class BFSChooser : public Chooser {
-  BFSGuide &G;
-
-public:
-  BFSChooser(BFSGuide &_G) : G(_G) {}
-  ~BFSChooser();
-  long choose(long Choices) override;
-  bool flip() override;
-};
-
-struct Node {
-  Node *Parent;
-  std::vector<std::unique_ptr<Node>> Children;
-};
+class BFSChooser;
 
 class BFSGuide : public Guide<BFSChooser> {
   friend BFSChooser;
+  struct Node {
+    Node *Parent;
+    std::vector<std::unique_ptr<BFSGuide::Node>> Children;
+  };
 
   long TotalNodes = 0;
-  std::unique_ptr<Node> Root;
+  std::unique_ptr<BFSGuide::Node> Root;
   Node *Current;
   long LastChoice, Level, MaxSavedLevel;
   std::unique_ptr<std::mt19937_64> Rand;
@@ -152,8 +141,18 @@ public:
   std::unique_ptr<BFSChooser> makeChooser() override;
 };
 
+class BFSChooser : public Chooser {
+  BFSGuide &G;
+
+public:
+  BFSChooser(BFSGuide &_G) : G(_G) {}
+  ~BFSChooser();
+  long choose(long Choices) override;
+  bool flip() override;
+};
+
 BFSGuide::BFSGuide(long Seed) {
-  Root = std::make_unique<Node>();
+  Root = std::make_unique<BFSGuide::Node>();
   Root->Children.resize(1);
   Rand = std::make_unique<std::mt19937_64>(Seed);
 }
@@ -189,7 +188,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
     MaxSavedLevel = SavedLevel;
 
     auto N = OptionalNode.value();
-    Node *N2 = nullptr;
+    BFSGuide::Node *N2 = nullptr;
     // this loop walks up to the root, saving the decisions that we
     // have to make to get back down here
     do {
@@ -260,7 +259,7 @@ BFSChooser::~BFSChooser() {
   // FIXME -- at scale this allocation will double our RAM usage, so
   // eventually do this a different way
   if (!G.Current->Children.at(G.LastChoice).get()) {
-    G.Current->Children.at(G.LastChoice) = std::make_unique<Node>();
+    G.Current->Children.at(G.LastChoice) = std::make_unique<BFSGuide::Node>();
     G.TotalNodes++;
   }
   G.Choosing = false;
@@ -304,11 +303,11 @@ long BFSChooser::choose(long Choices) {
      * and make a random choice
      */
     assert(G.SavedChoices.size() == 0);
-    N = new Node;
+    N = new BFSGuide::Node;
     G.TotalNodes++;
     N->Parent = G.Current;
     N->Children.resize(Choices);
-    auto UN = std::unique_ptr<Node>(N);
+    auto UN = std::unique_ptr<BFSGuide::Node>(N);
     G.Current->Children.at(G.LastChoice) = std::move(UN);
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
     Choice = Dist(*G.Rand);
