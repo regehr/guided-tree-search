@@ -126,21 +126,3 @@ TODO explain why reservoir sampling and MCTS aren't solutions for us
 This library is header-only, there's nothing to link against, just
 include `generator.h` in your application code.
 
-# TODO
-
-- write some more generators in the test driver
-
-- work out how to evaluate how well this thing works, when used in
-  non-trivial situations
-
-- coverage-guided generation
-
-- plug this into Csmith and YARPGen and see what happens
-
-- work out how to take hints from the user about things like desirable
-  patterns, subtrees that are likely to behave similarly every time we
-  reach them, etc.
-
-- work out how to take feedback about good/bad paths into account
-
-- there are lots more TODOs in the code

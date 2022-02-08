@@ -9,55 +9,6 @@
 #include <random>
 #include <vector>
 
-// TODO maybe split this into multiple files but then put them
-// together using a script so in the end there's a single file that
-// people can use
-
-// TODO make BFS optionally sometimes sample from lower depths, or
-// even round-robin among levels with available work
-
-// TODO probably should look at the priority queue in the middle of
-// some runs and see how big the buckets are getting
-
-// TODO make everything here consistent with GLOSSARY.md
-
-// TODO cardinality estimator guide
-
-// TODO coverage-driven guide
-
-// TODO meta-guide that round-robins among existing ones
-
-// TODO support hierarchy/grouping in the stream of choices
-
-// TODO put everything except Guide into a "details" namespace?
-
-// TODO once things are working, we can play allocator games to
-// substantially reduce memory use
-
-// TODO support weighted choice using an interface like YARPGen's
-// internal one
-
-// TODO wrap this library in a process and write a separate library
-// that talks to it using RPC or whatever, so programs like Csmith can
-// use this; perhaps use https://github.com/rpclib/rpclib
-
-// TODO maybe take file name and line number as arguments to choose()
-// functions -- this will support inference of self-similarity in the
-// choice tree based on the fact that it's just the same code
-// executing over and over (but with different inputs, so the
-// self-similarity is not expected to be perfect)
-
-// TODO support rejection of samples:
-// https://github.com/regehr/uniform-tree-sampling/issues/2
-
-// TODO optionally stop adding nodes to the explicit decision tree
-// beyond a certain depth, since beyond a certain point we're just
-// never going to be able to make use of the information contained
-// down there
-
-// TODO what do we do about swarm testing, or parameter shuffling as
-// YARPGen calls it?
-
 // TODO support these, eventually
 #if 0
   /*
