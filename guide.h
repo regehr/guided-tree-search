@@ -85,6 +85,8 @@ static const bool Debug = false;
 // TODO just inline this file at some point
 #include "priq.h"
 
+////////////////////////////////////////////////////////////////////////////////
+
 // abstract base class for all of the choosers
 class Chooser {
 protected:
@@ -111,6 +113,8 @@ public:
   virtual std::unique_ptr<T> makeChooser() = 0;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+
 /*
  * BFSGuide: exhaustive breadth-first exploration of the decision
  * tree, reverting to random choices once beyond the BFS frontier
@@ -126,13 +130,10 @@ class BFSGuide : public Guide<BFSChooser> {
 
   long TotalNodes = 0;
   std::unique_ptr<BFSGuide::Node> Root;
-  Node *Current;
-  long LastChoice, Level, MaxSavedLevel;
-  std::unique_ptr<std::mt19937_64> Rand;
-  // this vector is in reverse order so we can pop stuff efficiently
-  std::vector<long> SavedChoices;
   PriQ<Node *> PendingPaths;
+  long MaxSavedLevel = -1;
   bool Choosing = false, Started = false;
+  std::unique_ptr<std::mt19937_64> Rand;
 
 public:
   BFSGuide(long Seed);
@@ -142,10 +143,15 @@ public:
 };
 
 class BFSChooser : public Chooser {
+  friend BFSGuide;
   BFSGuide &G;
+  BFSGuide::Node *Current;
+  long LastChoice = 0, Level = 0;
+  // this vector is in reverse order so we can pop stuff efficiently
+  std::vector<long> SavedChoices;
 
 public:
-  BFSChooser(BFSGuide &_G) : G(_G) {}
+  BFSChooser(BFSGuide &_G) : G(_G) { Current = &*G.Root; }
   ~BFSChooser();
   long choose(long Choices) override;
   bool flip() override;
@@ -161,11 +167,6 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
   if (Debug)
     std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
   assert(!Choosing);
-  assert(SavedChoices.empty());
-  Current = &*Root;
-  LastChoice = 0;
-  MaxSavedLevel = -1;
-  Level = 0;
   /*
    * case 1: this is the first traversal; we've not yet seen any of
    * the decision tree, so do a purely random traversal to bootstrap
@@ -186,6 +187,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
   if (OptionalNode.has_value()) {
     assert(SavedLevel >= MaxSavedLevel);
     MaxSavedLevel = SavedLevel;
+    auto C = std::make_unique<BFSChooser>(*this);
 
     auto N = OptionalNode.value();
     BFSGuide::Node *N2 = nullptr;
@@ -233,12 +235,12 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
         }
       }
       assert(Next != -1);
-      SavedChoices.push_back(Next);
+      C->SavedChoices.push_back(Next);
       N2 = N;
       N = N->Parent;
     } while (N != Root.get());
     Choosing = true;
-    return std::make_unique<BFSChooser>(*this);
+    return C;
   }
   /*
    * case 3: the priority queue has run out of things for us to
@@ -256,10 +258,11 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
 }
 
 BFSChooser::~BFSChooser() {
+  assert(SavedChoices.empty());
   // FIXME -- at scale this allocation will double our RAM usage, so
   // eventually do this a different way
-  if (!G.Current->Children.at(G.LastChoice).get()) {
-    G.Current->Children.at(G.LastChoice) = std::make_unique<BFSGuide::Node>();
+  if (!Current->Children.at(LastChoice).get()) {
+    Current->Children.at(LastChoice) = std::make_unique<BFSGuide::Node>();
     G.TotalNodes++;
   }
   G.Choosing = false;
@@ -269,12 +272,12 @@ long BFSChooser::choose(long Choices) {
   assert(G.Choosing);
   if (Debug) {
     std::cout << "choose(" << Choices << ")\n";
-    std::cout << "  Current = " << G.Current
-              << ", LastChoice = " << G.LastChoice << "\n";
+    std::cout << "  Current = " << Current << ", LastChoice = " << LastChoice
+              << "\n";
   }
 
   long Choice;
-  auto N = G.Current->Children.at(G.LastChoice).get();
+  auto N = Current->Children.at(LastChoice).get();
   if (Debug)
     std::cout << "Node pointer = " << N << "\n";
   if (N) {
@@ -289,26 +292,26 @@ long BFSChooser::choose(long Choices) {
                    "number of choices this time\n";
       exit(-1);
     }
-    long NumSavedChoices = G.SavedChoices.size();
+    long NumSavedChoices = SavedChoices.size();
     if (Debug)
       std::cout << "  There are " << NumSavedChoices << " saved choices\n";
     assert(NumSavedChoices > 0);
-    Choice = G.SavedChoices.at(NumSavedChoices - 1);
+    Choice = SavedChoices.at(NumSavedChoices - 1);
     if (Debug)
       std::cout << "  We'll be taking option " << Choice << "\n";
-    G.SavedChoices.pop_back();
+    SavedChoices.pop_back();
   } else {
     /*
      * we're off the beaten path, add this decision node to the tree
      * and make a random choice
      */
-    assert(G.SavedChoices.size() == 0);
+    assert(SavedChoices.size() == 0);
     N = new BFSGuide::Node;
     G.TotalNodes++;
-    N->Parent = G.Current;
+    N->Parent = Current;
     N->Children.resize(Choices);
     auto UN = std::unique_ptr<BFSGuide::Node>(N);
-    G.Current->Children.at(G.LastChoice) = std::move(UN);
+    Current->Children.at(LastChoice) = std::move(UN);
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
     Choice = Dist(*G.Rand);
     /*
@@ -316,20 +319,22 @@ long BFSChooser::choose(long Choices) {
      */
     if (Choices > 1) {
       if (Debug)
-        std::cout << "  Inserting node " << N << " at level " << G.Level
+        std::cout << "  Inserting node " << N << " at level " << Level
                   << " with degree " << Choices << "\n";
-      G.PendingPaths.insert(N, G.Level);
+      G.PendingPaths.insert(N, Level);
     }
   }
-  G.Current = N;
-  G.LastChoice = Choice;
-  G.Level++;
+  Current = N;
+  LastChoice = Choice;
+  Level++;
   if (Debug)
     std::cout << "  returning " << Choice << "\n";
   return Choice;
 }
 
 bool BFSChooser::flip() { return choose(2); }
+
+////////////////////////////////////////////////////////////////////////////////
 
 /*
  * DefaultGuide: the point of this class is to offer the naive
@@ -368,6 +373,8 @@ long DefaultChooser::choose(long Choices) {
   std::uniform_int_distribution<int> Dist(0, Choices - 1);
   return Dist(*this->G.Rand);
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 class WeightedSamplerChooser;
 
@@ -482,6 +489,8 @@ public:
 std::unique_ptr<WeightedSamplerChooser> WeightedSamplerGuide::makeChooser() {
   return std::make_unique<WeightedSamplerChooser>(*this);
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 } // namespace tree_guide
 
