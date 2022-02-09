@@ -14,3 +14,4 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address,undefined,leak -D_DEBUG -D_GLIB
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 add_executable(tester tester.cpp)
+add_executable(regex regex.cpp)
