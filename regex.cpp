@@ -63,7 +63,7 @@ static std::string gen(tree_guide::Chooser &C, long Depth) {
   }
 }
 
-const long N = 100;
+const long N = 10000;
 const long Depth = 3;
 
 int main() {
@@ -75,8 +75,9 @@ int main() {
       break;
     }
     auto Str = gen(*C, Depth);
-    std::cout << Str << "\n";
-    system(("grep '" + Str + "' < ../regex.cpp >/dev/null").c_str());
+    auto Ret = system(("grep '" + Str + "' < ../regex.cpp >/dev/null").c_str());
+    if (Ret != 0 && Ret != 256)
+      std::cout << Ret << " : " << Str << "\n";
   }
   return 0;
 }
