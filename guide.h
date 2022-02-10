@@ -87,10 +87,10 @@ class BFSGuide : public Guide<BFSChooser> {
   std::unique_ptr<std::mt19937_64> Rand;
 
 public:
-  BFSGuide(long Seed);
-  BFSGuide() : BFSGuide(std::random_device{}()) {}
-  ~BFSGuide() {}
-  std::unique_ptr<BFSChooser> makeChooser() override;
+  inline BFSGuide(long Seed);
+  inline BFSGuide() : BFSGuide(std::random_device{}()) {}
+  inline ~BFSGuide() {}
+  inline std::unique_ptr<BFSChooser> makeChooser() override;
 };
 
 class BFSChooser : public Chooser {
@@ -102,10 +102,10 @@ class BFSChooser : public Chooser {
   std::vector<long> SavedChoices;
 
 public:
-  BFSChooser(BFSGuide &_G) : G(_G) { Current = &*G.Root; }
-  ~BFSChooser();
-  long choose(long Choices) override;
-  bool flip() override;
+  inline BFSChooser(BFSGuide &_G) : G(_G) { Current = &*G.Root; }
+  inline ~BFSChooser();
+  inline long choose(long Choices) override;
+  inline bool flip() override;
 };
 
 BFSGuide::BFSGuide(long Seed) {
@@ -137,6 +137,8 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
   auto [OptionalNode, SavedLevel] = PendingPaths.removeHead();
   if (OptionalNode.has_value()) {
     assert(SavedLevel >= MaxSavedLevel);
+    if (true && SavedLevel > MaxSavedLevel)
+      std::cout << "fully explored up to " << SavedLevel << "\n";
     MaxSavedLevel = SavedLevel;
     auto C = std::make_unique<BFSChooser>(*this);
 
@@ -300,11 +302,10 @@ class DefaultChooser : public Chooser {
   DefaultGuide &G;
 
 public:
-  DefaultChooser(DefaultGuide &_G) : G(_G) {}
-  ~DefaultChooser(){};
-  long choose(long Choices) override;
-
-  bool flip() override { return choose(2); }
+  inline DefaultChooser(DefaultGuide &_G) : G(_G) {}
+  inline ~DefaultChooser(){};
+  inline long choose(long Choices) override;
+  inline bool flip() override { return choose(2); }
 };
 
 class DefaultGuide : public Guide<DefaultChooser> {
@@ -354,13 +355,13 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
   std::unique_ptr<std::mt19937_64> Rand;
 
 public:
-  WeightedSamplerGuide(long Seed) {
+  inline WeightedSamplerGuide(long Seed) {
     this->Root = std::make_unique<Node>();
     this->Rand = std::make_unique<std::mt19937_64>(Seed);
   }
-  WeightedSamplerGuide() : WeightedSamplerGuide(std::random_device{}()) {}
-  ~WeightedSamplerGuide() {}
-  std::unique_ptr<WeightedSamplerChooser> makeChooser() override;
+  inline WeightedSamplerGuide() : WeightedSamplerGuide(std::random_device{}()) {}
+  inline ~WeightedSamplerGuide() {}
+  inline std::unique_ptr<WeightedSamplerChooser> makeChooser() override;
 };
 
 class WeightedSamplerChooser : public Chooser {
