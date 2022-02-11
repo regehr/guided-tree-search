@@ -6,22 +6,19 @@
              Dominik Maier <mail@dmnk.co>
 */
 
-// You need to use -I /path/to/AFLplusplus/include
-#include "custom_mutator_helpers.h"
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "custom_mutator_helpers.h"
+
 #define DATA_SIZE (100)
 
 static const char *commands[] = {
-
     "GET",
     "PUT",
     "DEL",
-
 };
 
 typedef struct my_mutator {
@@ -34,11 +31,11 @@ typedef struct my_mutator {
   int cur_step;
 
   // Reused buffers:
-  BUF_VAR(u8, fuzz);
-  BUF_VAR(u8, data);
-  BUF_VAR(u8, havoc);
-  BUF_VAR(u8, trim);
-  BUF_VAR(u8, post_process);
+  BUF_VAR(u8, fuzz)
+  BUF_VAR(u8, data)
+  BUF_VAR(u8, havoc)
+  BUF_VAR(u8, trim)
+  BUF_VAR(u8, post_process)
 
 } my_mutator_t;
 
@@ -85,12 +82,13 @@ extern "C" my_mutator_t *afl_custom_init(afl_t *afl, unsigned int seed) {
  *     produce data larger than max_size.
  * @return Size of the mutated output.
  */
-extern "C" size_t afl_custom_fuzz(my_mutator_t *data, uint8_t *buf,
-                                  size_t buf_size, u8 **out_buf,
-                                  uint8_t *add_buf,
-                                  size_t add_buf_size, // add_buf can be NULL
-                                  size_t max_size) {
-
+extern "C" size_t afl_custom_fuzz(my_mutator_t *data,
+                                  [[maybe_unused]] uint8_t *buf,
+                                  [[maybe_unused]] size_t buf_size,
+                                  [[maybe_unused]] u8 **out_buf,
+                                  [[maybe_unused]] uint8_t *add_buf,
+                                  [[maybe_unused]] size_t add_buf_size, // add_buf can be NULL
+                                  [[maybe_unused]] size_t max_size) {
   // Make sure that the packet size does not exceed the maximum size expected by
   // the fuzzer
   size_t mutated_size = DATA_SIZE <= max_size ? DATA_SIZE : max_size;
@@ -270,7 +268,7 @@ extern "C" int32_t afl_custom_post_trim(my_mutator_t *data, int success) {
  */
 extern "C" size_t afl_custom_havoc_mutation(my_mutator_t *data, u8 *buf,
                                             size_t buf_size, u8 **out_buf,
-                                            size_t max_size) {
+                                            [[maybe_unused]] size_t max_size) {
 
   if (buf_size == 0) {
 
@@ -305,7 +303,7 @@ extern "C" size_t afl_custom_havoc_mutation(my_mutator_t *data, u8 *buf,
  * @param[in] data pointer returned in afl_custom_init for this fuzz case
  * @return The probability (0-100).
  */
-extern "C" uint8_t afl_custom_havoc_mutation_probability(my_mutator_t *data) {
+extern "C" uint8_t afl_custom_havoc_mutation_probability([[maybe_unused]] my_mutator_t *data) {
 
   return 5; // 5 %
 }
@@ -320,8 +318,8 @@ extern "C" uint8_t afl_custom_havoc_mutation_probability(my_mutator_t *data) {
  * @return Return True(1) if the fuzzer will fuzz the queue entry, and
  *     False(0) otherwise.
  */
-extern "C" uint8_t afl_custom_queue_get(my_mutator_t *data,
-                                        const uint8_t *filename) {
+extern "C" uint8_t afl_custom_queue_get([[maybe_unused]] my_mutator_t *data,
+                                        [[maybe_unused]] const uint8_t *filename) {
 
   return 1;
 }
@@ -339,9 +337,9 @@ extern "C" uint8_t afl_custom_queue_get(my_mutator_t *data,
  *         otherwise
  */
 extern "C" uint8_t
-afl_custom_queue_new_entry(my_mutator_t *data,
-                           const uint8_t *filename_new_queue,
-                           const uint8_t *filename_orig_queue) {
+afl_custom_queue_new_entry([[maybe_unused]] my_mutator_t *data,
+                           [[maybe_unused]] const uint8_t *filename_new_queue,
+                           [[maybe_unused]] const uint8_t *filename_orig_queue) {
 
   /* Additional analysis on the original or new test case */
   return 0;

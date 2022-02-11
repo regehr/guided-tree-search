@@ -21,6 +21,6 @@ target_link_libraries(regex_test regex)
 
 if (AFLPLUSPLUS_DIR)
   add_library(aflplusplus-mutator SHARED aflplusplus-mutator.cpp)
-   target_include_directories(aflplusplus-mutator PUBLIC "${AFLPLUSPLUS_DIR}/include" "${AFLPLUSPLUS_DIR}/custom_mutators/examples")
+   target_include_directories(aflplusplus-mutator SYSTEM PUBLIC "${AFLPLUSPLUS_DIR}/include" "${AFLPLUSPLUS_DIR}/custom_mutators/examples")
 endif()
 
