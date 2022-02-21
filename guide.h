@@ -2,21 +2,13 @@
 #define TREE_GUIDE_H_
 
 #include <cassert>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <optional>
 #include <queue>
 #include <random>
 #include <vector>
-
-#if 0
-/*
- * adds n leaves but doesn't branch the tree; use this when this choice
- * does not affect any subsequent choices
- */
-// TODO support this, eventually
-long choose_nofork(long n);
-#endif
 
 namespace tree_guide {
 
@@ -100,6 +92,7 @@ class BFSChooser : public Chooser {
   long LastChoice = 0, Level = 0;
   // this vector is in reverse order so we can pop stuff efficiently
   std::vector<long> SavedChoices;
+  inline long chooseInternal(long, std::function<long()>);
 
 public:
   inline BFSChooser(BFSGuide &_G) : G(_G) { Current = &*G.Root; }
@@ -223,7 +216,7 @@ BFSChooser::~BFSChooser() {
   G.Choosing = false;
 }
 
-long BFSChooser::choose(long Choices) {
+long BFSChooser::chooseInternal(const long Choices, std::function<long()> randomChoice) {
   assert(G.Choosing);
   if (Debug) {
     std::cout << "choose(" << Choices << ")\n";
@@ -267,8 +260,7 @@ long BFSChooser::choose(long Choices) {
     N->Children.resize(Choices);
     auto UN = std::unique_ptr<BFSGuide::Node>(N);
     Current->Children.at(LastChoice) = std::move(UN);
-    std::uniform_int_distribution<int> Dist(0, Choices - 1);
-    Choice = Dist(*G.Rand);
+    Choice = randomChoice();
     /*
      * if there are other options we'll need to get back to them later
      */
@@ -287,16 +279,26 @@ long BFSChooser::choose(long Choices) {
   return Choice;
 }
 
+long BFSChooser::choose(long Choices) {
+  return chooseInternal(Choices, [&] () -> long { 
+    std::uniform_int_distribution<int> Dist(0, Choices - 1);
+    return Dist(*G.Rand);
+  });
+}
+
 bool BFSChooser::flip() { return choose(2); }
 
 long BFSChooser::chooseWeighted(const std::vector<long> &Probs) {
-  assert(false);
-  return Probs[0];
+  return chooseInternal(Probs.size(), [&] () -> long { 
+    std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
+    return Discrete(*this->G.Rand);
+  });
 }
 
 long BFSChooser::chooseUnimportant() {
-  assert(false);
-  return 0;
+  std::uniform_int_distribution<long> Dist(std::numeric_limits<long>::min(),
+                                           std::numeric_limits<long>::max());
+  return Dist(*this->G.Rand);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
