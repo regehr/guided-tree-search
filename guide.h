@@ -9,20 +9,13 @@
 #include <random>
 #include <vector>
 
-// TODO support these, eventually
 #if 0
-  /*
-   * adds n leaves but doesn't branch the tree; use this when this choice
-   * does not affect any subsequent choices
-   */
-  long choose_nofork(long n);
-
-  /*
-   * generate a random integer without adding any leaves to the tree;
-   * this this to generate things like strings and integer constants
-   * where we don't want to sample the whole space
-   */
-  long choose_noeffect(long n);
+/*
+ * adds n leaves but doesn't branch the tree; use this when this choice
+ * does not affect any subsequent choices
+ */
+// TODO support this, eventually
+long choose_nofork(long n);
 #endif
 
 namespace tree_guide {
@@ -45,14 +38,20 @@ protected:
 
 public:
   virtual ~Chooser() {}
-  /*
-   * return a number in 0..n
-   */
+  // return a number in 0..n
   virtual long choose(long n) = 0;
-  /*
-   * shorthand for choose(2)
-   */
+  // shorthand for choose(2)
   virtual bool flip() = 0;
+  // weighted choice
+  virtual long chooseWeighted(const std::vector<long> &) = 0;
+  /*
+   * this call has a very specific contract: it does not cause the
+   * decision tree to branch; it must only be used when the value that
+   * is returned will not affect subsequent decisions made by the
+   * generator. it might be used, for example, to generate a literal
+   * constant in the output, or the name of an identifer
+   */
+  virtual long chooseUnimportant() = 0;
 };
 
 // abstract base class for all of the guides
@@ -84,6 +83,7 @@ class BFSGuide : public Guide<BFSChooser> {
   PriQ<Node *> PendingPaths;
   long MaxSavedLevel = -1;
   bool Choosing = false, Started = false;
+  // TODO move this into the chooser?
   std::unique_ptr<std::mt19937_64> Rand;
 
 public:
@@ -106,6 +106,8 @@ public:
   inline ~BFSChooser();
   inline long choose(long Choices) override;
   inline bool flip() override;
+  inline long chooseWeighted(const std::vector<long> &) override;
+  inline long chooseUnimportant() override;
 };
 
 BFSGuide::BFSGuide(long Seed) {
@@ -212,7 +214,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
 
 BFSChooser::~BFSChooser() {
   assert(SavedChoices.empty());
-  // FIXME -- at scale this allocation will double our RAM usage, so
+  // TODO -- at scale this allocation will double our RAM usage, so
   // eventually do this a different way
   if (!Current->Children.at(LastChoice).get()) {
     Current->Children.at(LastChoice) = std::make_unique<BFSGuide::Node>();
@@ -287,6 +289,16 @@ long BFSChooser::choose(long Choices) {
 
 bool BFSChooser::flip() { return choose(2); }
 
+long BFSChooser::chooseWeighted(const std::vector<long> &Probs) {
+  assert(false);
+  return Probs[0];
+}
+
+long BFSChooser::chooseUnimportant() {
+  assert(false);
+  return 0;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -306,6 +318,8 @@ public:
   inline ~DefaultChooser(){};
   inline long choose(long Choices) override;
   inline bool flip() override { return choose(2); }
+  inline long chooseWeighted(const std::vector<long> &) override;
+  inline long chooseUnimportant() override;
 };
 
 class DefaultGuide : public Guide<DefaultChooser> {
@@ -323,6 +337,17 @@ public:
 
 long DefaultChooser::choose(long Choices) {
   std::uniform_int_distribution<int> Dist(0, Choices - 1);
+  return Dist(*this->G.Rand);
+}
+
+long DefaultChooser::chooseWeighted(const std::vector<long> &Probs) {
+  std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
+  return Discrete(*this->G.Rand);
+}
+
+long DefaultChooser::chooseUnimportant() {
+  std::uniform_int_distribution<long> Dist(std::numeric_limits<long>::min(),
+                                           std::numeric_limits<long>::max());
   return Dist(*this->G.Rand);
 }
 
@@ -436,10 +461,22 @@ public:
   };
 
   bool flip() override { return choose(2); }
+  inline long chooseWeighted(const std::vector<long> &) override;
+  inline long chooseUnimportant() override;
 };
 
 std::unique_ptr<WeightedSamplerChooser> WeightedSamplerGuide::makeChooser() {
   return std::make_unique<WeightedSamplerChooser>(*this);
+}
+
+long WeightedSamplerChooser::chooseWeighted(const std::vector<long> &Probs) {
+  assert(false);
+  return Probs[0];
+}
+
+long WeightedSamplerChooser::chooseUnimportant() {
+  assert(false);
+  return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
