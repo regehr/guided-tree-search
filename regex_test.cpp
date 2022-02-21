@@ -6,7 +6,7 @@
 
 #include "regex.h"
 
-const long N = 1000*1000*1000;
+const long N = 1000 * 1000 * 1000;
 const long Depth = 4;
 
 int main() {
@@ -19,11 +19,11 @@ int main() {
     }
     auto Str = gen(*C, Depth);
     if (false) {
-      auto Ret = system(("grep '" + Str + "' < ../regex.cpp >/dev/null").c_str());
+      auto Ret =
+          system(("grep '" + Str + "' < ../regex.cpp >/dev/null").c_str());
       if (Ret != 0 && Ret != 256)
         std::cout << Ret << " : " << Str << "\n";
     }
   }
   return 0;
 }
-

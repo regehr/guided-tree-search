@@ -83,13 +83,12 @@ extern "C" my_mutator_t *afl_custom_init(afl_t *afl, unsigned int seed) {
  *     produce data larger than max_size.
  * @return Size of the mutated output.
  */
-extern "C" size_t afl_custom_fuzz(my_mutator_t *data,
-                                  [[maybe_unused]] uint8_t *buf,
-                                  [[maybe_unused]] size_t buf_size,
-                                  [[maybe_unused]] u8 **out_buf,
-                                  [[maybe_unused]] uint8_t *add_buf,
-                                  [[maybe_unused]] size_t add_buf_size, // add_buf can be NULL
-                                  [[maybe_unused]] size_t max_size) {
+extern "C" size_t
+afl_custom_fuzz(my_mutator_t *data, [[maybe_unused]] uint8_t *buf,
+                [[maybe_unused]] size_t buf_size, [[maybe_unused]] u8 **out_buf,
+                [[maybe_unused]] uint8_t *add_buf,
+                [[maybe_unused]] size_t add_buf_size, // add_buf can be NULL
+                [[maybe_unused]] size_t max_size) {
   // Make sure that the packet size does not exceed the maximum size expected by
   // the fuzzer
   size_t mutated_size = DATA_SIZE <= max_size ? DATA_SIZE : max_size;
@@ -138,7 +137,7 @@ extern "C" size_t afl_custom_post_process(my_mutator_t *data, uint8_t *buf,
                                           size_t buf_size, uint8_t **out_buf) {
 
   uint8_t *post_process_buf =
-    (uint8_t *)maybe_grow(BUF_PARAMS(data, post_process), buf_size + 5);
+      (uint8_t *)maybe_grow(BUF_PARAMS(data, post_process), buf_size + 5);
   if (!post_process_buf) {
 
     perror("custom mutator realloc failed.");
@@ -304,7 +303,8 @@ extern "C" size_t afl_custom_havoc_mutation(my_mutator_t *data, u8 *buf,
  * @param[in] data pointer returned in afl_custom_init for this fuzz case
  * @return The probability (0-100).
  */
-extern "C" uint8_t afl_custom_havoc_mutation_probability([[maybe_unused]] my_mutator_t *data) {
+extern "C" uint8_t
+afl_custom_havoc_mutation_probability([[maybe_unused]] my_mutator_t *data) {
 
   return 5; // 5 %
 }
@@ -319,8 +319,9 @@ extern "C" uint8_t afl_custom_havoc_mutation_probability([[maybe_unused]] my_mut
  * @return Return True(1) if the fuzzer will fuzz the queue entry, and
  *     False(0) otherwise.
  */
-extern "C" uint8_t afl_custom_queue_get([[maybe_unused]] my_mutator_t *data,
-                                        [[maybe_unused]] const uint8_t *filename) {
+extern "C" uint8_t
+afl_custom_queue_get([[maybe_unused]] my_mutator_t *data,
+                     [[maybe_unused]] const uint8_t *filename) {
 
   return 1;
 }
@@ -337,10 +338,10 @@ extern "C" uint8_t afl_custom_queue_get([[maybe_unused]] my_mutator_t *data,
  * @return if the file contents was modified return 1 (True), 0 (False)
  *         otherwise
  */
-extern "C" uint8_t
-afl_custom_queue_new_entry([[maybe_unused]] my_mutator_t *data,
-                           [[maybe_unused]] const uint8_t *filename_new_queue,
-                           [[maybe_unused]] const uint8_t *filename_orig_queue) {
+extern "C" uint8_t afl_custom_queue_new_entry(
+    [[maybe_unused]] my_mutator_t *data,
+    [[maybe_unused]] const uint8_t *filename_new_queue,
+    [[maybe_unused]] const uint8_t *filename_orig_queue) {
 
   /* Additional analysis on the original or new test case */
   return 0;

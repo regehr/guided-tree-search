@@ -216,7 +216,8 @@ BFSChooser::~BFSChooser() {
   G.Choosing = false;
 }
 
-long BFSChooser::chooseInternal(const long Choices, std::function<long()> randomChoice) {
+long BFSChooser::chooseInternal(const long Choices,
+                                std::function<long()> randomChoice) {
   assert(G.Choosing);
   if (Debug) {
     std::cout << "choose(" << Choices << ")\n";
@@ -280,7 +281,7 @@ long BFSChooser::chooseInternal(const long Choices, std::function<long()> random
 }
 
 long BFSChooser::choose(long Choices) {
-  return chooseInternal(Choices, [&] () -> long { 
+  return chooseInternal(Choices, [&]() -> long {
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
     return Dist(*G.Rand);
   });
@@ -289,7 +290,7 @@ long BFSChooser::choose(long Choices) {
 bool BFSChooser::flip() { return choose(2); }
 
 long BFSChooser::chooseWeighted(const std::vector<long> &Probs) {
-  return chooseInternal(Probs.size(), [&] () -> long { 
+  return chooseInternal(Probs.size(), [&]() -> long {
     std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
     return Discrete(*this->G.Rand);
   });
@@ -386,7 +387,8 @@ public:
     this->Root = std::make_unique<Node>();
     this->Rand = std::make_unique<std::mt19937_64>(Seed);
   }
-  inline WeightedSamplerGuide() : WeightedSamplerGuide(std::random_device{}()) {}
+  inline WeightedSamplerGuide()
+      : WeightedSamplerGuide(std::random_device{}()) {}
   inline ~WeightedSamplerGuide() {}
   inline std::unique_ptr<WeightedSamplerChooser> makeChooser() override;
 };

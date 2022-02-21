@@ -48,12 +48,11 @@ std::string gen(tree_guide::Chooser &C, long Depth) {
     return gen(C, Depth) + "{" + std::to_string(num(C, 1, 5)) + ",}";
   case 9:
     return gen(C, Depth) + "{," + std::to_string(num(C, 1, 5)) + "}";
-  case 10:
-    {
-      auto N = num(C, 0, 5);
-      return gen(C, Depth) + "{" + std::to_string(N) + "," +
-        std::to_string(N + num(C, 0, 4)) + "}";
-    }
+  case 10: {
+    auto N = num(C, 0, 5);
+    return gen(C, Depth) + "{" + std::to_string(N) + "," +
+           std::to_string(N + num(C, 0, 4)) + "}";
+  }
   default:
     assert(false);
   }
