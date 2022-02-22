@@ -363,6 +363,7 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
 
   struct Node {
     bool visited = false;
+    bool weighted = false;
     std::vector<std::unique_ptr<Node>> Children;
     std::discrete_distribution<long> ChildSampler;
     double SizeEstimate;
@@ -378,6 +379,7 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
         this->visited = true;
         this->SizeEstimate = n;
         if (weights.size() > 0) {
+          this->weighted = true;
           double total = 0;
           std::vector<double> ChildWeights;
           for (auto weight : weights) {
@@ -396,8 +398,10 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
 
     double weight(size_t i) {
       assert(this->visited);
-      if (this->ChildSampler.probabilities().size() > 0) {
-        return this->ChildSampler.probabilities()[i];
+      if (this->weighted) {
+        const auto &prob = this->ChildSampler.probabilities();
+        assert(i < prob.size());
+        return prob[i];
       } else {
         return 1.0 / this->Children.size();
       }
@@ -462,16 +466,14 @@ public:
     // weighout reweighting. If this takes us to a child that we've
     // never visited before, we just use that.
     size_t result;
-    if (current->ChildSampler.probabilities().size() == 0) {
+    if (current->weighted) {
+      result = current->ChildSampler(*this->G.Rand);
+    } else {
       std::uniform_int_distribution<long> Dist(0, Choices - 1);
       result = Dist(*this->G.Rand);
-    } else {
-      result = current->ChildSampler(*this->G.Rand);
     }
 
-    if (current->Children[result] == nullptr) {
-      result = result;
-    } else {
+    if (current->Children[result] != nullptr) {
       // If we sampled a node we've already visited, this means we
       // are in the reweighted region, and we should sample from it
       // with the distribution adjusted by the children's size estimates.
