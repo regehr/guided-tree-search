@@ -364,18 +364,26 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
   struct Node {
     bool visited = false;
     std::vector<std::unique_ptr<Node>> Children;
+    std::vector<long> ChildWeights;
     double SizeEstimate;
 
     Node() {}
 
-    void visit(size_t n) {
+    void visit(size_t n, const std::vector<long> &weights) {
+      assert(weights.size() == 0 || weights.size() == n);
       if (this->visited) {
         assert(n == this->Children.size());
       } else {
         this->Children.resize(n);
+        this->ChildWeights = weights;
         this->visited = true;
         this->SizeEstimate = n;
       }
+    }
+
+    void visit(size_t n) {
+      std::vector<long> empty;
+      this->visit(n, empty);
     }
   };
 
@@ -420,9 +428,9 @@ public:
       this->Trail.pop_back();
     }
   };
-  long choose(long Choices) override {
+  long choose(long Choices, const std::vector<long> &Weights) {
     WeightedSamplerGuide::Node *current = this->Trail.back();
-    current->visit(Choices);
+    current->visit(Choices, Weights);
     double count = 0;
     double total_weight = 0;
 
@@ -464,6 +472,11 @@ public:
     return result;
   };
 
+  long choose(long Choices) override {
+    std::vector<long> empty;
+    return this->choose(Choices, empty);
+  }
+
   bool flip() override { return choose(2); }
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
@@ -474,13 +487,13 @@ std::unique_ptr<WeightedSamplerChooser> WeightedSamplerGuide::makeChooser() {
 }
 
 long WeightedSamplerChooser::chooseWeighted(const std::vector<long> &Probs) {
-  assert(false);
-  return Probs[0];
+  return this->choose(Probs.size(), Probs);
 }
 
 long WeightedSamplerChooser::chooseUnimportant() {
-  assert(false);
-  return 0;
+  std::uniform_int_distribution<long> Dist(std::numeric_limits<long>::min(),
+                                           std::numeric_limits<long>::max());
+  return Dist(*this->G.Rand);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
