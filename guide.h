@@ -35,6 +35,7 @@ public:
   // shorthand for choose(2)
   virtual bool flip() = 0;
   // weighted choice
+  virtual long chooseWeighted(const std::vector<double> &) = 0;
   virtual long chooseWeighted(const std::vector<long> &) = 0;
   /*
    * this call has a very specific contract: it does not cause the
@@ -99,6 +100,7 @@ public:
   inline ~BFSChooser();
   inline long choose(long Choices) override;
   inline bool flip() override;
+  inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
 };
@@ -289,6 +291,13 @@ long BFSChooser::choose(long Choices) {
 
 bool BFSChooser::flip() { return choose(2); }
 
+long BFSChooser::chooseWeighted(const std::vector<double> &Probs) {
+  return chooseInternal(Probs.size(), [&]() -> long {
+    std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
+    return Discrete(*this->G.Rand);
+  });
+}
+
 long BFSChooser::chooseWeighted(const std::vector<long> &Probs) {
   return chooseInternal(Probs.size(), [&]() -> long {
     std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
@@ -321,6 +330,7 @@ public:
   inline ~DefaultChooser(){};
   inline long choose(long Choices) override;
   inline bool flip() override { return choose(2); }
+  inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
 };
@@ -341,6 +351,11 @@ public:
 long DefaultChooser::choose(long Choices) {
   std::uniform_int_distribution<int> Dist(0, Choices - 1);
   return Dist(*this->G.Rand);
+}
+
+long DefaultChooser::chooseWeighted(const std::vector<double> &Probs) {
+  std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
+  return Discrete(*this->G.Rand);
 }
 
 long DefaultChooser::chooseWeighted(const std::vector<long> &Probs) {
@@ -370,7 +385,7 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
 
     Node() {}
 
-    void visit(size_t n, const std::vector<long> &weights) {
+    void visit(size_t n, const std::vector<double> &weights) {
       assert(weights.size() == 0 || weights.size() == n);
       if (this->visited) {
         assert(n == this->Children.size());
@@ -408,7 +423,7 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
     }
 
     void visit(size_t n) {
-      std::vector<long> empty;
+      std::vector<double> empty;
       this->visit(n, empty);
     }
   };
@@ -458,7 +473,7 @@ public:
     }
   };
 
-  long choose(long Choices, const std::vector<long> &Weights) {
+  long choose(long Choices, const std::vector<double> &Weights) {
     WeightedSamplerGuide::Node *current = this->Trail.back();
     current->visit(Choices, Weights);
 
@@ -502,11 +517,12 @@ public:
   };
 
   long choose(long Choices) override {
-    std::vector<long> empty;
+    std::vector<double> empty;
     return this->choose(Choices, empty);
   }
 
   bool flip() override { return choose(2); }
+  inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
 };
@@ -515,8 +531,18 @@ std::unique_ptr<WeightedSamplerChooser> WeightedSamplerGuide::makeChooser() {
   return std::make_unique<WeightedSamplerChooser>(*this);
 }
 
-long WeightedSamplerChooser::chooseWeighted(const std::vector<long> &Probs) {
+long WeightedSamplerChooser::chooseWeighted(const std::vector<double> &Probs) {
   return this->choose(Probs.size(), Probs);
+}
+
+long WeightedSamplerChooser::chooseWeighted(const std::vector<long> &Probs) {
+  long Total = 0;
+  for (auto I : Probs)
+    Total += I;
+  std::vector<double> V;
+  for (auto I : Probs)
+    V.push_back((double)I / Total);
+  return this->choose(Probs.size(), V);
 }
 
 long WeightedSamplerChooser::chooseUnimportant() {
