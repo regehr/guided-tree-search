@@ -24,3 +24,15 @@ if (AFLPLUSPLUS_DIR)
    target_include_directories(aflplusplus-mutator SYSTEM PUBLIC "${AFLPLUSPLUS_DIR}/include" "${AFLPLUSPLUS_DIR}/custom_mutators/examples")
 endif()
 
+Include(FetchContent)
+
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        v3.0.0-preview4
+)
+
+FetchContent_MakeAvailable(Catch2)
+
+add_executable(runtests test.cpp)
+target_link_libraries(runtests PRIVATE Catch2::Catch2WithMain)

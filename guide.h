@@ -389,6 +389,9 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
       assert(weights.size() == 0 || weights.size() == n);
       if (this->visited) {
         assert(n == this->Children.size());
+      } else if (n == 0) {
+        this->visited = true;
+        this->SizeEstimate = 1.0;
       } else {
         this->Children.resize(n);
         this->visited = true;
@@ -401,8 +404,7 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
             total += (double)weight;
             ChildWeights.push_back(weight);
           }
-          for (size_t i = 0; i < this->ChildSampler.probabilities().size();
-               i++) {
+          for (size_t i = 0; i < ChildWeights.size(); i++) {
             ChildWeights[i] /= total;
           }
           this->ChildSampler = std::discrete_distribution<long>(
@@ -426,6 +428,33 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
       std::vector<double> empty;
       this->visit(n, empty);
     }
+
+    void debug(size_t indent) {
+      assert(this->visited);
+      if (this->Children.size() == 0) {
+        std::cout << "Leaf node" << std::endl;
+        return;
+      }
+
+      std::string indent_string(indent, ' ');
+      std::cout << "Node (size estimate " << this->SizeEstimate
+                << ", weights: ";
+      for (size_t i = 0; i < this->Children.size(); i++) {
+        if (i > 0)
+          std::cout << ", ";
+        std::cout << this->weight(i);
+      }
+
+      std::cout << "):" << std::endl;
+      for (size_t i = 0; i < this->Children.size(); i++) {
+        std::cout << indent_string << i << ": ";
+        if (this->Children[i] == nullptr) {
+          std::cout << "unvisited" << std::endl;
+        } else {
+          this->Children[i]->debug(indent + 2);
+        }
+      }
+    }
   };
 
   std::unique_ptr<Node> Root;
@@ -440,6 +469,7 @@ public:
       : WeightedSamplerGuide(std::random_device{}()) {}
   inline ~WeightedSamplerGuide() {}
   inline std::unique_ptr<WeightedSamplerChooser> makeChooser() override;
+  void debugTree() { this->Root->debug(0); }
 };
 
 class WeightedSamplerChooser : public Chooser {
@@ -451,7 +481,7 @@ public:
     this->Trail.push_back(this->G.Root.get());
   }
   ~WeightedSamplerChooser() override {
-    this->Trail.back()->SizeEstimate = 1.0;
+    this->Trail.back()->visit(0);
     this->Trail.pop_back();
     while (this->Trail.size() > 0) {
       WeightedSamplerGuide::Node *last = this->Trail.back();
@@ -467,7 +497,7 @@ public:
         }
       }
 
-      last->SizeEstimate = last->Children.size() / occupied;
+      last->SizeEstimate = last->Children.size() * total / occupied;
 
       this->Trail.pop_back();
     }

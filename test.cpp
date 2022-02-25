@@ -1,0 +1,4 @@
+#include "guide.h"
+#include <catch2/catch_test_macros.hpp>
+
+#include "tests/weighted-sampler.h"
