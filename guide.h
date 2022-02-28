@@ -13,7 +13,7 @@
 namespace tree_guide {
 
 #ifdef _DEBUG
-static const bool Debug = true;
+static const bool Debug = false;
 #else
 static const bool Debug = false;
 #endif
@@ -134,7 +134,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
   auto [OptionalNode, SavedLevel] = PendingPaths.removeHead();
   if (OptionalNode.has_value()) {
     assert(SavedLevel >= MaxSavedLevel);
-    if (true && SavedLevel > MaxSavedLevel)
+    if (Debug && SavedLevel > MaxSavedLevel)
       std::cout << "fully explored up to " << SavedLevel << "\n";
     MaxSavedLevel = SavedLevel;
     auto C = std::make_unique<BFSChooser>(*this);

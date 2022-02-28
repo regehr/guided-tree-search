@@ -1,3 +1,6 @@
+#ifndef STANDARD_TREE_HELPERS_H_
+#define STANDARD_TREE_HELPERS_H_
+
 /*
  * test tree generators
  *
@@ -236,3 +239,5 @@ static unsigned long test_decreasing_degree_tree(tree_guide::Chooser &C,
 
   return test_decreasing_degree_tree_helper(C, TreeDepth, 0, TreeDepth);
 }
+
+#endif
