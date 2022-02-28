@@ -34,3 +34,6 @@ FetchContent_MakeAvailable(Catch2)
 
 add_executable(runtests test.cpp)
 target_link_libraries(runtests PRIVATE Catch2::Catch2WithMain)
+
+enable_testing()
+add_test(NAME main_test COMMAND runtests)
