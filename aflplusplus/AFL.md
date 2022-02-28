@@ -1,4 +1,4 @@
-# COVERATE-BASED GUIDES
+# COVERAGE-BASED GUIDES
 
 * for this this is just notes to self -- please ignore *
 

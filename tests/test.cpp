@@ -3,7 +3,7 @@
 #include <catch2/generators/catch_generators.hpp>
 
 #include "guide.h"
-#include "tests/standard-trees.h"
+#include "standard-trees.h"
 
-#include "tests/weighted-sampler.h"
-#include "tests/test-standard-trees.h"
+#include "weighted-sampler.h"
+#include "test-standard-trees.h"
