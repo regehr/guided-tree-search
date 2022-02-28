@@ -18,6 +18,8 @@ static const bool Debug = false;
 static const bool Debug = false;
 #endif
 
+static const bool Verbose = false;
+
 // TODO just inline this file at some point
 #include "priq.h"
 
@@ -112,7 +114,7 @@ BFSGuide::BFSGuide(long Seed) {
 }
 
 std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
-  if (Debug)
+  if (Verbose)
     std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
   assert(!Choosing);
   /*
@@ -121,7 +123,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
    * things
    */
   if (!Started) {
-    if (Debug)
+    if (Verbose)
       std::cout << "  First traversal\n";
     Started = true;
     Choosing = true;
@@ -134,7 +136,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
   auto [OptionalNode, SavedLevel] = PendingPaths.removeHead();
   if (OptionalNode.has_value()) {
     assert(SavedLevel >= MaxSavedLevel);
-    if (Debug && SavedLevel > MaxSavedLevel)
+    if (Verbose && SavedLevel > MaxSavedLevel)
       std::cout << "fully explored up to " << SavedLevel << "\n";
     MaxSavedLevel = SavedLevel;
     auto C = std::make_unique<BFSChooser>(*this);
@@ -154,7 +156,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
             break;
           }
         }
-        if (Debug)
+        if (Verbose)
           std::cout << "  appending " << Next
                     << " to saved choice above target node\n";
       } else {
@@ -162,7 +164,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
         // TODO: this is deterministic, it would be better to pick a random one
         long NumUntaken = 0;
         for (long i = 0; i < S; ++i) {
-          if (Debug)
+          if (Verbose)
             std::cout << "    child " << i << " = " << N->Children.at(i).get()
                       << "\n";
           if (N->Children.at(i).get() == nullptr) {
@@ -170,7 +172,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
             Next = i;
           }
         }
-        if (Debug)
+        if (Verbose)
           std::cout << "  appending " << Next
                     << " to saved choice at target node\n";
         // this node should not have been there if there wasn't a branch
@@ -179,7 +181,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
         // if there's at least one remaining unexplored branch, put
         // this node back at the end of its priority queue
         if (NumUntaken > 1) {
-          if (Debug)
+          if (Verbose)
             std::cout << "  Re-inserting node\n";
           PendingPaths.insert(N, SavedLevel);
         }
@@ -202,7 +204,7 @@ std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
    * don't cause branching in the tree, generators could use this to
    * generate things like wide literal constants
    */
-  if (Debug)
+  if (Verbose)
     std::cout << "  Tree has been completely explored!\n";
   return nullptr;
 }
@@ -221,7 +223,7 @@ BFSChooser::~BFSChooser() {
 long BFSChooser::chooseInternal(const long Choices,
                                 std::function<long()> randomChoice) {
   assert(G.Choosing);
-  if (Debug) {
+  if (Verbose) {
     std::cout << "choose(" << Choices << ")\n";
     std::cout << "  Current = " << Current << ", LastChoice = " << LastChoice
               << "\n";
@@ -229,7 +231,7 @@ long BFSChooser::chooseInternal(const long Choices,
 
   long Choice;
   auto N = Current->Children.at(LastChoice).get();
-  if (Debug)
+  if (Verbose)
     std::cout << "Node pointer = " << N << "\n";
   if (N) {
     /*
@@ -244,11 +246,11 @@ long BFSChooser::chooseInternal(const long Choices,
       exit(-1);
     }
     long NumSavedChoices = SavedChoices.size();
-    if (Debug)
+    if (Verbose)
       std::cout << "  There are " << NumSavedChoices << " saved choices\n";
     assert(NumSavedChoices > 0);
     Choice = SavedChoices.at(NumSavedChoices - 1);
-    if (Debug)
+    if (Verbose)
       std::cout << "  We'll be taking option " << Choice << "\n";
     SavedChoices.pop_back();
   } else {
@@ -268,7 +270,7 @@ long BFSChooser::chooseInternal(const long Choices,
      * if there are other options we'll need to get back to them later
      */
     if (Choices > 1) {
-      if (Debug)
+      if (Verbose)
         std::cout << "  Inserting node " << N << " at level " << Level
                   << " with degree " << Choices << "\n";
       G.PendingPaths.insert(N, Level);
@@ -277,7 +279,7 @@ long BFSChooser::chooseInternal(const long Choices,
   Current = N;
   LastChoice = Choice;
   Level++;
-  if (Debug)
+  if (Verbose)
     std::cout << "  returning " << Choice << "\n";
   return Choice;
 }
