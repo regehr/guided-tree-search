@@ -1,15 +1,12 @@
 #define TREE_TEST_CASE(TEST)                                                   \
   SECTION(#TEST) {                                                             \
     auto Tree = test_##TEST;                                                   \
-    bool EarlyExit = false;                                                    \
     long NumLeaves = -1;                                                       \
     long RemainingLeaves = -1;                                                 \
     for (int rep = 0; rep < REPS; ++rep) {                                     \
       auto C = G.makeChooser();                                                \
-      if (!C) {                                                                \
-        EarlyExit = true;                                                      \
+      if (!C)                                                                  \
         break;                                                                 \
-      }                                                                        \
       auto Res = Tree(*C, NumLeaves);                                          \
       if (rep == 0) {                                                          \
         REQUIRE(NumLeaves > 0);                                                \
