@@ -1,5 +1,7 @@
 # TODO
 
+- (perhaps optionally) avoid exploring branches with zero weight
+
 - write some more generators in the test driver
 
 - work out how to evaluate how well this thing works, when used in

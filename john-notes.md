@@ -1,3 +1,5 @@
+setup CI
+
 Maciver simple impl   
   https://gist.github.com/DRMacIver/eb0e151834dd85f23659f6c2040fd6c9
 
