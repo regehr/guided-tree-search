@@ -1,5 +1,12 @@
 # TODO
 
+- maybe take file name and line number as arguments to choose()
+  functions -- this will support inference of self-similarity in the
+  choice tree based on the fact that it's just the same code executing
+  over and over (but with different inputs, so the self-similarity is
+  not expected to be perfect) -- this also helps traceability and
+  debuggability
+
 - (perhaps optionally) avoid exploring branches with zero weight
 
 - write some more generators in the test driver
@@ -48,12 +55,6 @@
 - wrap this library in a process and write a separate library that
   talks to it using RPC or whatever, so programs like Csmith can use
   this; perhaps use https://github.com/rpclib/rpclib
-
-- maybe take file name and line number as arguments to choose()
-  functions -- this will support inference of self-similarity in the
-  choice tree based on the fact that it's just the same code executing
-  over and over (but with different inputs, so the self-similarity is
-  not expected to be perfect)
 
 - support rejection of samples:
   https://github.com/regehr/uniform-tree-sampling/issues/2
