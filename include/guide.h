@@ -4,11 +4,11 @@
 #include <cassert>
 #include <functional>
 #include <iostream>
-#include <unordered_map>
 #include <memory>
 #include <optional>
 #include <queue>
 #include <random>
+#include <unordered_map>
 #include <vector>
 
 namespace tree_guide {
@@ -381,6 +381,7 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
 
   struct Node {
     bool visited = false;
+    size_t BranchFactor;
     std::vector<double> Weights;
     std::unordered_map<long, std::unique_ptr<Node>> Children;
     double SizeEstimate;
@@ -390,11 +391,14 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
     void visit(size_t n, const std::vector<double> &weights) {
       assert(weights.size() == 0 || weights.size() == n);
       if (this->visited) {
+        assert(n == this->BranchFactor);
         return;
       } else if (n == 0) {
+        this->BranchFactor = n;
         this->visited = true;
         this->SizeEstimate = 1.0;
       } else {
+        this->BranchFactor = n;
         this->visited = true;
         this->SizeEstimate = n;
         if (weights.size() > 0) {
@@ -483,42 +487,76 @@ public:
     WeightedSamplerGuide::Node *current = this->Trail.back();
     current->visit(Choices, Weights);
 
-    // First we make an attempt at sampling from the distribution
-    // weighout reweighting. If this takes us to a child that we've
-    // never visited before, we just use that.
     size_t result;
-    if (current->Weights.size() > 0) {
-      std::discrete_distribution<long> Dist(current->Weights.begin(),
-                                            current->Weights.end());
-      result = Dist(*this->G.Rand);
-    } else {
-      std::uniform_int_distribution<long> Dist(0, Choices - 1);
-      result = Dist(*this->G.Rand);
-    }
+    WeightedSamplerGuide::Node *next_node;
+    std::uniform_real_distribution<double> unif(0.0, 1.0);
 
-    if (current->Children[result] != nullptr) {
-      // If we sampled a node we've already visited, this means we
-      // are in the reweighted region, and we should sample from it
-      // with the distribution adjusted by the children's size estimates.
-      std::vector<double> weights;
-      for (size_t i = 0; i < current->Children.size(); i++) {
-        auto &child = current->Children[i];
-        if (child == nullptr) {
-          weights.push_back(0.0);
-        } else {
-          weights.push_back(child->SizeEstimate * current->weight(i));
+    // When we visit a node we have to choose between whether to visit
+    // a child we've already seen or not (unless we've already seen every
+    // child or we've seen no children, in which case there is no choice).
+    // We consider visiting a new child to be explore, and a previous child
+    // to be exploit.
+    //
+    // The advantage of visiting previously visited children is we've got
+    // a much firmer idea of what their structure is like, so we can choose
+    // between them more sensibly. The advantage of visiting new children
+    // is it allows us to explore previously unvisited areas of the search
+    // space.
+    //
+    // We don't have any particularly good way of making this decision. The
+    // current heuristic does its best to balance explore and exploit while
+    // still trying to be useful for a large branch factor. As a result we
+    // rapidly at first and then once we have a decent number of nodes to
+    // compare, we switch to a more leisurely strategy where we prefer to
+    // exploit existing nodes but explore occasionally.
+    bool explore =
+        (current->Children.size() < current->BranchFactor &&
+         (current->Children.size() <= 5 || unif(*this->G.Rand) <= 0.1));
+
+    if (explore) {
+      if (current->Weights.size() > 0) {
+        std::discrete_distribution<long> Dist(current->Weights.begin(),
+                                              current->Weights.end());
+        while (true) {
+          result = Dist(*this->G.Rand);
+          if (current->Children[result] == nullptr)
+            break;
+        }
+      } else {
+        std::uniform_int_distribution<long> Dist(0, current->BranchFactor - 1);
+        while (true) {
+          result = Dist(*this->G.Rand);
+          if (current->Children[result] == nullptr)
+            break;
         }
       }
-      std::discrete_distribution<long> Dist(weights.begin(), weights.end());
-      result = Dist(*this->G.Rand);
-    }
 
-    WeightedSamplerGuide::Node *next_node = current->Children[result].get();
-    if (next_node == nullptr) {
       next_node = (current->Children[result] =
                        std::make_unique<WeightedSamplerGuide::Node>())
                       .get();
+
+    } else {
+      std::vector<long> results;
+      std::vector<double> weights;
+
+      for (auto &t : current->Children) {
+        auto value = t.first;
+        auto &child = t.second;
+        if (child == nullptr)
+          continue;
+        results.push_back(value);
+        weights.push_back(current->weight(value) * child->SizeEstimate);
+      }
+
+      std::discrete_distribution<size_t> Dist(weights.begin(), weights.end());
+
+      auto i = Dist(*this->G.Rand);
+
+      result = results[i];
+
+      next_node = current->Children[result].get();
     }
+
     assert(next_node != nullptr);
 
     this->Trail.push_back(next_node);
