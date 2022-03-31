@@ -4,6 +4,7 @@
 #include <cassert>
 #include <functional>
 #include <iostream>
+#include <unordered_map>
 #include <memory>
 #include <optional>
 #include <queue>
@@ -380,9 +381,8 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
 
   struct Node {
     bool visited = false;
-    bool weighted = false;
-    std::vector<std::unique_ptr<Node>> Children;
-    std::discrete_distribution<long> ChildSampler;
+    std::vector<double> Weights;
+    std::unordered_map<long, std::unique_ptr<Node>> Children;
     double SizeEstimate;
 
     Node() {}
@@ -390,39 +390,29 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
     void visit(size_t n, const std::vector<double> &weights) {
       assert(weights.size() == 0 || weights.size() == n);
       if (this->visited) {
-        assert(n == this->Children.size());
+        return;
       } else if (n == 0) {
         this->visited = true;
         this->SizeEstimate = 1.0;
       } else {
-        this->Children.resize(n);
         this->visited = true;
         this->SizeEstimate = n;
         if (weights.size() > 0) {
-          this->weighted = true;
-          double total = 0;
-          std::vector<double> ChildWeights;
-          for (auto weight : weights) {
-            total += (double)weight;
-            ChildWeights.push_back(weight);
-          }
-          for (size_t i = 0; i < ChildWeights.size(); i++) {
-            ChildWeights[i] /= total;
-          }
-          this->ChildSampler = std::discrete_distribution<long>(
-              ChildWeights.begin(), ChildWeights.end());
+          double total = 0.0;
+          for (const auto x : weights)
+            total += x;
+          for (const auto x : weights)
+            this->Weights.push_back(x / total * n);
         }
       }
     }
 
     double weight(size_t i) {
       assert(this->visited);
-      if (this->weighted) {
-        const auto &prob = this->ChildSampler.probabilities();
-        assert(i < prob.size());
-        return prob[i];
+      if (this->Weights.size() > 0) {
+        return this->Weights[i];
       } else {
-        return 1.0 / this->Children.size();
+        return 1.0;
       }
     }
 
@@ -439,23 +429,8 @@ class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
       }
 
       std::string indent_string(indent, ' ');
-      std::cout << "Node (size estimate " << this->SizeEstimate
-                << ", weights: ";
-      for (size_t i = 0; i < this->Children.size(); i++) {
-        if (i > 0)
-          std::cout << ", ";
-        std::cout << this->weight(i);
-      }
-
-      std::cout << "):" << std::endl;
-      for (size_t i = 0; i < this->Children.size(); i++) {
-        std::cout << indent_string << i << ": ";
-        if (this->Children[i] == nullptr) {
-          std::cout << "unvisited" << std::endl;
-        } else {
-          this->Children[i]->debug(indent + 2);
-        }
-      }
+      std::cout << "Node (size estimate " << this->SizeEstimate << ");"
+                << std::endl;
     }
   };
 
@@ -467,8 +442,7 @@ public:
     this->Root = std::make_unique<Node>();
     this->Rand = std::make_unique<std::mt19937_64>(Seed);
   }
-  inline WeightedSamplerGuide()
-      : WeightedSamplerGuide(std::random_device{}()) {}
+  inline WeightedSamplerGuide() : WeightedSamplerGuide(0) {}
   inline ~WeightedSamplerGuide() {}
   inline std::unique_ptr<WeightedSamplerChooser> makeChooser() override;
   void debugTree() { this->Root->debug(0); }
@@ -489,14 +463,14 @@ public:
       WeightedSamplerGuide::Node *last = this->Trail.back();
       double occupied = 0.0;
       double total = 0.0;
-      for (size_t i = 0; i < last->Children.size(); i++) {
-        auto &child = last->Children[i];
-        double weight = last->weight(i);
-
-        if (child != nullptr) {
-          occupied += weight;
-          total += child->SizeEstimate * weight;
-        }
+      for (auto &t : last->Children) {
+        auto i = t.first;
+        auto &child = t.second;
+        if (child == nullptr)
+          continue;
+        auto weight = last->weight(i);
+        total += child->SizeEstimate * weight;
+        occupied += weight;
       }
 
       last->SizeEstimate = last->Children.size() * total / occupied;
@@ -513,8 +487,10 @@ public:
     // weighout reweighting. If this takes us to a child that we've
     // never visited before, we just use that.
     size_t result;
-    if (current->weighted) {
-      result = current->ChildSampler(*this->G.Rand);
+    if (current->Weights.size() > 0) {
+      std::discrete_distribution<long> Dist(current->Weights.begin(),
+                                            current->Weights.end());
+      result = Dist(*this->G.Rand);
     } else {
       std::uniform_int_distribution<long> Dist(0, Choices - 1);
       result = Dist(*this->G.Rand);
@@ -543,6 +519,7 @@ public:
                        std::make_unique<WeightedSamplerGuide::Node>())
                       .get();
     }
+    assert(next_node != nullptr);
 
     this->Trail.push_back(next_node);
     return result;
