@@ -26,7 +26,10 @@ static const bool Verbose = false;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// abstract base class for all of the choosers
+/*
+ * abstract base class for all of the choosers
+ */
+
 class Chooser {
 protected:
   Chooser() {}
@@ -51,13 +54,73 @@ public:
 };
 
 // abstract base class for all of the guides
-template <class T> class Guide {
+class Guide {
 public:
   Guide() {}
   Guide(long) {}
   virtual ~Guide() {}
-  virtual std::unique_ptr<T> makeChooser() = 0;
+  virtual std::unique_ptr<Chooser> makeChooser() = 0;
+  virtual const std::string name() = 0;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * DefaultGuide: the point of this class is to offer the naive
+ * alternative to the smarter generator, as a basis for comparison and
+ * so people can get used to the API without the heavyweight path
+ * selection stuff going on
+ */
+
+class DefaultGuide;
+
+class DefaultChooser : public Chooser {
+  DefaultGuide &G;
+
+public:
+  inline DefaultChooser(DefaultGuide &_G) : G(_G) {}
+  inline ~DefaultChooser(){};
+  inline long choose(long Choices) override;
+  inline bool flip() override { return choose(2); }
+  inline long chooseWeighted(const std::vector<double> &) override;
+  inline long chooseWeighted(const std::vector<long> &) override;
+  inline long chooseUnimportant() override;
+};
+
+class DefaultGuide : public Guide {
+  friend DefaultChooser;
+  std::unique_ptr<std::mt19937_64> Rand;
+
+public:
+  DefaultGuide(long Seed) { Rand = std::make_unique<std::mt19937_64>(Seed); }
+  DefaultGuide() : DefaultGuide(std::random_device{}()) {}
+  ~DefaultGuide() {}
+  std::unique_ptr<Chooser> makeChooser() override {
+    return std::make_unique<DefaultChooser>(*this);
+  }
+  inline const std::string name() override { return "default"; }
+};
+
+long DefaultChooser::choose(long Choices) {
+  std::uniform_int_distribution<int> Dist(0, Choices - 1);
+  return Dist(*this->G.Rand);
+}
+
+long DefaultChooser::chooseWeighted(const std::vector<double> &Probs) {
+  std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
+  return Discrete(*this->G.Rand);
+}
+
+long DefaultChooser::chooseWeighted(const std::vector<long> &Probs) {
+  std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
+  return Discrete(*this->G.Rand);
+}
+
+long DefaultChooser::chooseUnimportant() {
+  std::uniform_int_distribution<long> Dist(std::numeric_limits<long>::min(),
+                                           std::numeric_limits<long>::max());
+  return Dist(*this->G.Rand);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -65,9 +128,12 @@ public:
  * BFSGuide: exhaustive breadth-first exploration of the decision
  * tree, reverting to random choices once beyond the BFS frontier
  */
+
+// TODO this guide uses way too much memory
+  
 class BFSChooser;
 
-class BFSGuide : public Guide<BFSChooser> {
+class BFSGuide : public Guide {
   friend BFSChooser;
   struct Node {
     Node *Parent;
@@ -86,7 +152,8 @@ public:
   inline BFSGuide(long Seed);
   inline BFSGuide() : BFSGuide(std::random_device{}()) {}
   inline ~BFSGuide() {}
-  inline std::unique_ptr<BFSChooser> makeChooser() override;
+  inline std::unique_ptr<Chooser> makeChooser() override;
+  inline const std::string name() override { return "BFS"; }
 };
 
 class BFSChooser : public Chooser {
@@ -114,7 +181,7 @@ BFSGuide::BFSGuide(long Seed) {
   Rand = std::make_unique<std::mt19937_64>(Seed);
 }
 
-std::unique_ptr<BFSChooser> BFSGuide::makeChooser() {
+std::unique_ptr<Chooser> BFSGuide::makeChooser() {
   if (Verbose)
     std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
   assert(!Choosing);
@@ -317,66 +384,13 @@ long BFSChooser::chooseUnimportant() {
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
- * DefaultGuide: the point of this class is to offer the naive
- * alternative to the smarter generator, as a basis for comparison and
- * so people can get used to the API without the heavyweight path
- * selection stuff going on
+ * tries to explore subtrees of the decision tree in an intelligent
+ * fashion using techniques resembling cardinality estimation
  */
-
-class DefaultGuide;
-
-class DefaultChooser : public Chooser {
-  DefaultGuide &G;
-
-public:
-  inline DefaultChooser(DefaultGuide &_G) : G(_G) {}
-  inline ~DefaultChooser(){};
-  inline long choose(long Choices) override;
-  inline bool flip() override { return choose(2); }
-  inline long chooseWeighted(const std::vector<double> &) override;
-  inline long chooseWeighted(const std::vector<long> &) override;
-  inline long chooseUnimportant() override;
-};
-
-class DefaultGuide : public Guide<DefaultChooser> {
-  friend DefaultChooser;
-  std::unique_ptr<std::mt19937_64> Rand;
-
-public:
-  DefaultGuide(long Seed) { Rand = std::make_unique<std::mt19937_64>(Seed); }
-  DefaultGuide() : DefaultGuide(std::random_device{}()) {}
-  ~DefaultGuide() {}
-  std::unique_ptr<DefaultChooser> makeChooser() override {
-    return std::make_unique<DefaultChooser>(*this);
-  }
-};
-
-long DefaultChooser::choose(long Choices) {
-  std::uniform_int_distribution<int> Dist(0, Choices - 1);
-  return Dist(*this->G.Rand);
-}
-
-long DefaultChooser::chooseWeighted(const std::vector<double> &Probs) {
-  std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
-  return Discrete(*this->G.Rand);
-}
-
-long DefaultChooser::chooseWeighted(const std::vector<long> &Probs) {
-  std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
-  return Discrete(*this->G.Rand);
-}
-
-long DefaultChooser::chooseUnimportant() {
-  std::uniform_int_distribution<long> Dist(std::numeric_limits<long>::min(),
-                                           std::numeric_limits<long>::max());
-  return Dist(*this->G.Rand);
-}
-
-////////////////////////////////////////////////////////////////////////////////
 
 class WeightedSamplerChooser;
 
-class WeightedSamplerGuide : public Guide<WeightedSamplerChooser> {
+class WeightedSamplerGuide : public Guide {
   friend WeightedSamplerChooser;
 
   struct Node {
@@ -448,8 +462,9 @@ public:
   }
   inline WeightedSamplerGuide() : WeightedSamplerGuide(0) {}
   inline ~WeightedSamplerGuide() {}
-  inline std::unique_ptr<WeightedSamplerChooser> makeChooser() override;
+  inline std::unique_ptr<Chooser> makeChooser() override;
   void debugTree() { this->Root->debug(0); }
+  inline const std::string name() override { return "weighted sample"; }
 };
 
 class WeightedSamplerChooser : public Chooser {
@@ -574,7 +589,7 @@ public:
   inline long chooseUnimportant() override;
 };
 
-std::unique_ptr<WeightedSamplerChooser> WeightedSamplerGuide::makeChooser() {
+std::unique_ptr<Chooser> WeightedSamplerGuide::makeChooser() {
   return std::make_unique<WeightedSamplerChooser>(*this);
 }
 
@@ -597,6 +612,244 @@ long WeightedSamplerChooser::chooseUnimportant() {
                                            std::numeric_limits<long>::max());
   return Dist(*this->G.Rand);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * SaverGuide: wraps another guide in order to remember choices that
+ * it made; use the chooser's getChoices() method to retreive them
+ */
+
+// TODO return choices as parsable string, optionally as a C/C++ comment
+
+template <typename T> class SaverChooser;
+
+template <typename T> class SaverGuide : public Guide {
+  friend SaverChooser<T>;
+  std::unique_ptr<DefaultGuide> DG;
+  const size_t MAX_LINE_LENGTH = 70;
+
+public:
+  SaverGuide(long Seed) { DG = std::make_unique<DefaultGuide>(Seed); }
+  SaverGuide() { DG = std::make_unique<DefaultGuide>(); }
+  ~SaverGuide() {}
+  std::unique_ptr<Chooser> makeChooser() override {
+    return std::make_unique<SaverChooser<T>>(*this);
+  }
+  inline const std::string name() override {
+    return DG->name() + " (wrapped in saver)";
+  }
+};
+
+template <typename T> class SaverChooser : public Chooser {
+  SaverGuide<T> &G;
+  std::unique_ptr<Chooser> C;
+  std::vector<long> Saved;
+
+public:
+  inline SaverChooser(SaverGuide<T> &_G) : G(_G) { C = G.DG->makeChooser(); }
+  inline ~SaverChooser(){};
+  inline long choose(long Choices) override;
+  inline bool flip() override { return choose(2); }
+  inline long chooseWeighted(const std::vector<double> &) override;
+  inline long chooseWeighted(const std::vector<long> &) override;
+  inline long chooseUnimportant() override;
+  const std::vector<long> &getChoices();
+  const std::string formatChoices();
+};
+
+template <typename T> long SaverChooser<T>::choose(long Choices) {
+  auto X = C->choose(Choices);
+  Saved.push_back(X);
+  return X;
+}
+
+template <typename T>
+long SaverChooser<T>::chooseWeighted(const std::vector<double> &Probs) {
+  auto X = C->chooseWeighted(Probs);
+  Saved.push_back(X);
+  return X;
+}
+
+template <typename T>
+long SaverChooser<T>::chooseWeighted(const std::vector<long> &Probs) {
+  auto X = C->chooseWeighted(Probs);
+  Saved.push_back(X);
+  return X;
+}
+
+template <typename T> long SaverChooser<T>::chooseUnimportant() {
+  auto X = C->chooseUnimportant();
+  Saved.push_back(X);
+  return X;
+}
+
+// NB the vector referenced by the return value here's lifetime will
+// end when the chooser's lifetime ends
+template <typename T> const std::vector<long> &SaverChooser<T>::getChoices() {
+  return Saved;
+}
+
+template <typename T> const std::string SaverChooser<T>::formatChoices() {
+  std::string s;
+  s += "/* FORMATTED CHOICES:\n";
+  std::vector<long>::size_type pos = 0;
+  std::string line = " * ";
+  while (pos < Saved.size()) {
+    std::string num = std::to_string(Saved.at(pos)) + ",";
+    if (line.length() + num.length() >= G.MAX_LINE_LENGTH) {
+      s += line + "\n";
+      line = " * " + num;
+    } else {
+      line += num;
+    }
+    ++pos;
+  }
+  s += line + "\n";
+  s += " */\n";
+  return s;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * RRGuide: creates choosers from multiple guides in round-robin
+ * fashion
+ */
+
+class RRChooser;
+
+class RRGuide : public Guide {
+  friend RRChooser;
+  const std::vector<Guide *> Gs;
+  size_t Current = 0;
+
+public:
+  RRGuide(long Seed) = delete;
+  RRGuide() = delete;
+  RRGuide(const std::vector<Guide *> &_Gs) : Gs(_Gs) {}
+  ~RRGuide() {}
+  inline std::unique_ptr<Chooser> makeChooser() override;
+  inline const std::string name() override { return "round-robin"; }
+};
+
+class RRChooser : public Chooser {
+  RRGuide &G;
+  std::unique_ptr<Chooser> C;
+
+public:
+  inline RRChooser(RRGuide &_G) : G(_G) {
+    // this is a bit awkward since some of the guides might start
+    // failing to create choosers
+    bool Reset = false;
+  again:
+    C = G.Gs.at(G.Current)->makeChooser();
+    assert(C);
+    ++G.Current;
+    if (G.Current == G.Gs.size()) {
+      G.Current = 0;
+      Reset = true;
+    }
+    if (C == nullptr && !Reset)
+      goto again;
+  }
+  inline ~RRChooser(){};
+  inline long choose(long Choices) override;
+  inline bool flip() override { return choose(2); }
+  inline long chooseWeighted(const std::vector<double> &) override;
+  inline long chooseWeighted(const std::vector<long> &) override;
+  inline long chooseUnimportant() override;
+  inline bool hasSubChooser() { return C != nullptr; }
+};
+
+long RRChooser::choose(long Choices) { return C->choose(Choices); }
+
+long RRChooser::chooseWeighted(const std::vector<double> &Probs) {
+  return C->chooseWeighted(Probs);
+}
+
+long RRChooser::chooseWeighted(const std::vector<long> &Probs) {
+  return C->chooseWeighted(Probs);
+}
+
+long RRChooser::chooseUnimportant() { return C->chooseUnimportant(); }
+
+std::unique_ptr<Chooser> RRGuide::makeChooser() {
+  auto C = std::make_unique<RRChooser>(*this);
+  if (C->hasSubChooser())
+    return C;
+  else
+    return nullptr;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * FileGuide: a one-shot guide: it creates a single chooser that loads
+ * a choice sequence from a specified file; used during reduction
+ */
+
+// TODO implement this
+
+class FileGuide;
+
+class FileChooser : public Chooser {
+  FileGuide &G;
+
+public:
+  inline FileChooser(FileGuide &_G) : G(_G) {}
+  inline ~FileChooser(){};
+  inline long choose(long Choices) override;
+  inline bool flip() override { return choose(2); }
+  inline long chooseWeighted(const std::vector<double> &) override;
+  inline long chooseWeighted(const std::vector<long> &) override;
+  inline long chooseUnimportant() override;
+};
+
+class FileGuide : public Guide {
+  friend FileChooser;
+
+public:
+  FileGuide([[maybe_unused]] long Seed) {}
+  FileGuide() {}
+  ~FileGuide() {}
+  std::unique_ptr<Chooser> makeChooser() override {
+    return std::make_unique<FileChooser>(*this);
+  }
+  inline const std::string name() override { return "file"; }
+};
+
+long FileChooser::choose([[maybe_unused]] long Choices) { return 0; }
+
+long FileChooser::chooseWeighted(
+    [[maybe_unused]] const std::vector<double> &Probs) {
+  return 0;
+}
+
+long FileChooser::chooseWeighted(
+    [[maybe_unused]] const std::vector<long> &Probs) {
+  return 0;
+}
+
+long FileChooser::chooseUnimportant() { return 0; }
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * remote guide: ephemeral in-process guide that talks to a different
+ * guide living in a server process; use this for generators that can
+ * only traverse the decision tree once each time they run
+ */
+
+// TODO
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * coverage guide: takes feedback from afl++
+ */
+
+// TODO
 
 ////////////////////////////////////////////////////////////////////////////////
 
