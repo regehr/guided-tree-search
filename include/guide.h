@@ -692,7 +692,7 @@ template <typename T> const std::vector<long> &SaverChooser<T>::getChoices() {
 
 template <typename T> const std::string SaverChooser<T>::formatChoices() {
   std::string s;
-  s += "/* FORMATTED CHOICES:\n";
+  s += "/*\n * FORMATTED CHOICES:\n";
   std::vector<long>::size_type pos = 0;
   std::string line = " * ";
   while (pos < Saved.size()) {
