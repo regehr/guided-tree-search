@@ -1,3 +1,8 @@
+saving memory in the BFS guide
+  avoid separate allocations
+  something probabilistic?
+  exploit self-similarity?
+
 setup CI
 
 Maciver simple impl   
