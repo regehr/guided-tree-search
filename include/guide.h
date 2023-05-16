@@ -843,6 +843,7 @@ FileGuide::FileGuide(std::string FileName) {
         if (line[0] != ' ' || line[1] != '*' || line[2] != ' ') {
           std::cerr << "FATAL ERROR: Expected every line of choices in '"
                     << FileName << "' to start with ' * '\n\n";
+	  exit(-1);
         }
         long val = 0;
         for (std::string::size_type pos = 3; pos < line.length(); ++pos) {
@@ -856,6 +857,7 @@ FileGuide::FileGuide(std::string FileName) {
           } else {
             std::cerr << "FATAL ERROR: Illegal character '" << c
                       << "' in choice string in '" << FileName << "'\n\n";
+	    exit(-1);
           }
         }
       }
