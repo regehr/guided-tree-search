@@ -894,14 +894,6 @@ long FileChooser::chooseUnimportant() { return G.Choices[Pos++]; }
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
- * reducer guide: supports internal test-case reduction
- */
-
-// TODO use a saver guide and a file guide
-
-////////////////////////////////////////////////////////////////////////////////
-
-/*
  * remote guide: ephemeral in-process guide that talks to a different
  * guide living in a server process; use this for generators that can
  * only traverse the decision tree once each time they run
