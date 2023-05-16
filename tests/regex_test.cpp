@@ -13,26 +13,6 @@ const long Depth = 6;
 using namespace std;
 using namespace tree_guide;
 
-void saver_test() {
-  SaverGuide<DefaultGuide> G;
-  unordered_set<string> Results;
-  for (int i = 0; i < N; ++i) {
-    auto C1 = G.makeChooser();
-    auto C2 = static_cast<SaverChooser<DefaultGuide> *>(C1.get());
-    if (!C2) {
-      cout << "*** tree fully explored ***\n";
-      break;
-    }
-    auto Str = gen(*C2, Depth);
-    if ((i % 1000000) == 0) {
-      cout << Str << "\n\n";
-      cout << C2->formatChoices();
-      cout << "\n";
-    }
-  }
-  cout << G.name() << " guide explored " << Results.size() << " leaves\n";
-}
-
 void go(Guide &G) {
   unordered_set<string> Results;
   for (int i = 0; i < N; ++i) {
@@ -54,7 +34,6 @@ void go(Guide &G) {
 }
 
 int main() {
-  saver_test();
   cout << "for " << N << " tests:\n";
   {
     SaverGuide<DefaultGuide> G;

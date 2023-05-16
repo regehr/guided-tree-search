@@ -15,8 +15,12 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 include_directories(include)
 add_library(regex STATIC tests/regex.cpp)
+
 add_executable(regex_test tests/regex_test.cpp)
 target_link_libraries(regex_test regex)
+
+add_executable(saver_test tests/saver_test.cpp)
+target_link_libraries(saver_test regex)
 
 if (AFLPLUSPLUS_DIR)
   add_library(aflplusplus-mutator SHARED aflplusplus/aflplusplus-mutator.cpp)

@@ -2,6 +2,7 @@
 #define TREE_GUIDE_H_
 
 #include <cassert>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -92,10 +93,12 @@ class DefaultGuide : public Guide {
   std::unique_ptr<std::mt19937_64> Rand;
 
 public:
-  DefaultGuide(long Seed) { Rand = std::make_unique<std::mt19937_64>(Seed); }
-  DefaultGuide() : DefaultGuide(std::random_device{}()) {}
-  ~DefaultGuide() {}
-  std::unique_ptr<Chooser> makeChooser() override {
+  inline DefaultGuide(long Seed) {
+    Rand = std::make_unique<std::mt19937_64>(Seed);
+  }
+  inline DefaultGuide() : DefaultGuide(std::random_device{}()) {}
+  inline ~DefaultGuide() {}
+  inline std::unique_ptr<Chooser> makeChooser() override {
     return std::make_unique<DefaultChooser>(*this);
   }
   inline const std::string name() override { return "default"; }
@@ -129,8 +132,10 @@ long DefaultChooser::chooseUnimportant() {
  * tree, reverting to random choices once beyond the BFS frontier
  */
 
-// TODO this guide uses way too much memory
-  
+// TODO this guide uses way too much memory -- since it never frees,
+// it shouldn't be too difficult to replace its allocated cells with a
+// large flat allocation
+
 class BFSChooser;
 
 class BFSGuide : public Guide {
@@ -309,8 +314,8 @@ long BFSChooser::chooseInternal(const long Choices,
       // TODO it's unfriendly to exit here, but this is a critical API
       // violation. alternatively, of course we could throw an
       // exception
-      std::cout << "ERROR: Reached same node again, but different "
-                   "number of choices this time\n";
+      std::cout << "FATAL ERROR: Reached same node again, but different "
+                   "number of choices this time\n\n";
       exit(-1);
     }
     long NumSavedChoices = SavedChoices.size();
@@ -400,9 +405,9 @@ class WeightedSamplerGuide : public Guide {
     std::unordered_map<long, std::unique_ptr<Node>> Children;
     double SizeEstimate;
 
-    Node() {}
+    inline Node() {}
 
-    void visit(size_t n, const std::vector<double> &weights) {
+    inline void visit(size_t n, const std::vector<double> &weights) {
       assert(weights.size() == 0 || weights.size() == n);
       if (this->visited) {
         assert(n == this->BranchFactor);
@@ -425,7 +430,7 @@ class WeightedSamplerGuide : public Guide {
       }
     }
 
-    double weight(size_t i) {
+    inline double weight(size_t i) {
       assert(this->visited);
       if (this->Weights.size() > 0) {
         return this->Weights[i];
@@ -434,12 +439,12 @@ class WeightedSamplerGuide : public Guide {
       }
     }
 
-    void visit(size_t n) {
+    inline void visit(size_t n) {
       std::vector<double> empty;
       this->visit(n, empty);
     }
 
-    void debug(size_t indent) {
+    inline void debug(size_t indent) {
       assert(this->visited);
       if (this->Children.size() == 0) {
         std::cout << "Leaf node" << std::endl;
@@ -463,7 +468,7 @@ public:
   inline WeightedSamplerGuide() : WeightedSamplerGuide(0) {}
   inline ~WeightedSamplerGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override;
-  void debugTree() { this->Root->debug(0); }
+  inline void debugTree() { this->Root->debug(0); }
   inline const std::string name() override { return "weighted sample"; }
 };
 
@@ -472,10 +477,10 @@ class WeightedSamplerChooser : public Chooser {
   std::vector<WeightedSamplerGuide::Node *> Trail;
 
 public:
-  WeightedSamplerChooser(WeightedSamplerGuide &_G) : G(_G) {
+  inline WeightedSamplerChooser(WeightedSamplerGuide &_G) : G(_G) {
     this->Trail.push_back(this->G.Root.get());
   }
-  ~WeightedSamplerChooser() override {
+  inline ~WeightedSamplerChooser() override {
     this->Trail.back()->visit(0);
     this->Trail.pop_back();
     while (this->Trail.size() > 0) {
@@ -498,7 +503,7 @@ public:
     }
   };
 
-  long choose(long Choices, const std::vector<double> &Weights) {
+  inline long choose(long Choices, const std::vector<double> &Weights) {
     WeightedSamplerGuide::Node *current = this->Trail.back();
     current->visit(Choices, Weights);
 
@@ -578,12 +583,12 @@ public:
     return result;
   };
 
-  long choose(long Choices) override {
+  inline long choose(long Choices) override {
     std::vector<double> empty;
     return this->choose(Choices, empty);
   }
 
-  bool flip() override { return choose(2); }
+  inline bool flip() override { return choose(2); }
   inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
@@ -617,10 +622,9 @@ long WeightedSamplerChooser::chooseUnimportant() {
 
 /*
  * SaverGuide: wraps another guide in order to remember choices that
- * it made; use the chooser's getChoices() method to retreive them
+ * it made; use the chooser's getChoices() or formatChoices() methods
+ * to retreive them
  */
-
-// TODO return choices as parsable string, optionally as a C/C++ comment
 
 template <typename T> class SaverChooser;
 
@@ -630,14 +634,14 @@ template <typename T> class SaverGuide : public Guide {
   const size_t MAX_LINE_LENGTH = 70;
 
 public:
-  SaverGuide(long Seed) { DG = std::make_unique<DefaultGuide>(Seed); }
-  SaverGuide() { DG = std::make_unique<DefaultGuide>(); }
-  ~SaverGuide() {}
-  std::unique_ptr<Chooser> makeChooser() override {
+  inline SaverGuide(long Seed) { DG = std::make_unique<DefaultGuide>(Seed); }
+  inline SaverGuide() { DG = std::make_unique<DefaultGuide>(); }
+  inline ~SaverGuide() {}
+  inline std::unique_ptr<Chooser> makeChooser() override {
     return std::make_unique<SaverChooser<T>>(*this);
   }
   inline const std::string name() override {
-    return DG->name() + " (wrapped in saver)";
+    return DG->name() + " (wrapped by Saver)";
   }
 };
 
@@ -654,8 +658,8 @@ public:
   inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
-  const std::vector<long> &getChoices();
-  const std::string formatChoices();
+  inline const std::vector<long> &getChoices();
+  inline const std::string formatChoices();
 };
 
 template <typename T> long SaverChooser<T>::choose(long Choices) {
@@ -725,10 +729,10 @@ class RRGuide : public Guide {
   size_t Current = 0;
 
 public:
-  RRGuide(long Seed) = delete;
-  RRGuide() = delete;
-  RRGuide(const std::vector<Guide *> &_Gs) : Gs(_Gs) {}
-  ~RRGuide() {}
+  inline RRGuide(long Seed) = delete;
+  inline RRGuide() = delete;
+  inline RRGuide(const std::vector<Guide *> &_Gs) : Gs(_Gs) {}
+  inline ~RRGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override;
   inline const std::string name() override { return "round-robin"; }
 };
@@ -742,16 +746,15 @@ public:
     // this is a bit awkward since some of the guides might start
     // failing to create choosers
     bool Reset = false;
-  again:
-    C = G.Gs.at(G.Current)->makeChooser();
-    assert(C);
-    ++G.Current;
-    if (G.Current == G.Gs.size()) {
-      G.Current = 0;
-      Reset = true;
-    }
-    if (C == nullptr && !Reset)
-      goto again;
+    do {
+      C = G.Gs.at(G.Current)->makeChooser();
+      assert(C);
+      ++G.Current;
+      if (G.Current == G.Gs.size()) {
+        G.Current = 0;
+        Reset = true;
+      }
+    } while (C == nullptr && !Reset);
   }
   inline ~RRChooser(){};
   inline long choose(long Choices) override;
@@ -785,16 +788,16 @@ std::unique_ptr<Chooser> RRGuide::makeChooser() {
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
- * FileGuide: a one-shot guide: it creates a single chooser that loads
- * a choice sequence from a specified file; used during reduction
+ * FileGuide: loads a file of choices; every chooser that it returns
+ * does exactly the same thing: makes the choices specified in the
+ * file
  */
-
-// TODO implement this
 
 class FileGuide;
 
 class FileChooser : public Chooser {
   FileGuide &G;
+  std::vector<long>::size_type Pos = 0;
 
 public:
   inline FileChooser(FileGuide &_G) : G(_G) {}
@@ -808,30 +811,91 @@ public:
 
 class FileGuide : public Guide {
   friend FileChooser;
+  std::vector<long> Choices;
+  const std::string StartMarker = "* FORMATTED CHOICES:";
+  const std::string EndMarker = "*/";
 
 public:
-  FileGuide([[maybe_unused]] long Seed) {}
-  FileGuide() {}
-  ~FileGuide() {}
-  std::unique_ptr<Chooser> makeChooser() override {
+  inline FileGuide(long Seed) = delete;
+  inline FileGuide() = delete;
+  inline FileGuide(std::string);
+  inline ~FileGuide() {}
+  inline std::unique_ptr<Chooser> makeChooser() override {
     return std::make_unique<FileChooser>(*this);
   }
   inline const std::string name() override { return "file"; }
 };
 
-long FileChooser::choose([[maybe_unused]] long Choices) { return 0; }
+FileGuide::FileGuide(std::string FileName) {
+  std::ifstream file(FileName);
+  if (!file.is_open()) {
+    std::cerr << "FATAL ERROR: Cannot open choice file '" << FileName
+              << "'\n\n";
+    exit(-1);
+  }
+  std::string line;
+  bool inData = false;
+  while (std::getline(file, line)) {
+    if (inData) {
+      if (line.find(EndMarker) != std::string::npos) {
+        break;
+      } else {
+        if (line[0] != ' ' || line[1] != '*' || line[2] != ' ') {
+          std::cerr << "FATAL ERROR: Expected every line of choices in '"
+                    << FileName << "' to start with ' * '\n\n";
+        }
+        long val = 0;
+        for (std::string::size_type pos = 3; pos < line.length(); ++pos) {
+          auto c = line[pos];
+          if (c == ',') {
+            Choices.push_back(val);
+            val = 0;
+          } else if (c >= '0' && c <= '9') {
+            val *= 10;
+            val += c - '0';
+          } else {
+            std::cerr << "FATAL ERROR: Illegal character '" << c
+                      << "' in choice string in '" << FileName << "'\n\n";
+          }
+        }
+      }
+    } else {
+      if (line.find(StartMarker) != std::string::npos) {
+        inData = true;
+      }
+    }
+  }
+  file.close();
+  if (Choices.size() == 0) {
+    std::cerr << "FATAL ERROR: The file '" << FileName
+              << "' contained no choices\n\n";
+    exit(-1);
+  }
+}
+
+long FileChooser::choose([[maybe_unused]] long Choices) {
+  return G.Choices[Pos++];
+}
 
 long FileChooser::chooseWeighted(
     [[maybe_unused]] const std::vector<double> &Probs) {
-  return 0;
+  return G.Choices[Pos++];
 }
 
 long FileChooser::chooseWeighted(
     [[maybe_unused]] const std::vector<long> &Probs) {
-  return 0;
+  return G.Choices[Pos++];
 }
 
-long FileChooser::chooseUnimportant() { return 0; }
+long FileChooser::chooseUnimportant() { return G.Choices[Pos++]; }
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * reducer guide: supports internal test-case reduction
+ */
+
+// TODO use a saver guide and a file guide
 
 ////////////////////////////////////////////////////////////////////////////////
 
