@@ -876,6 +876,19 @@ FileGuide::FileGuide(std::string FileName) {
   }
 }
 
+/*
+ * each of the following functions should deal gracefully with both of
+ * these conditions:
+ *
+ * - the choice from the file is out-of-bounds with respect to the
+ *   requested range of values
+ *
+ * - we've run out of values from the file to return; in this case we
+ *   additionally want the returned value to be deterministic and also
+ *   not the same value every time (since this could cause a rejection
+ *   sampling loop to run forever
+ */
+ 
 long FileChooser::choose(long Choices) {
   long val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
   return val % Choices;
