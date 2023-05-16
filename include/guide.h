@@ -539,19 +539,19 @@ public:
                                               current->Weights.end());
         while (true) {
           result = Dist(*this->G.Rand);
-          if (current->Children[result] == nullptr)
+          if (current->Children.at(result) == nullptr)
             break;
         }
       } else {
         std::uniform_int_distribution<long> Dist(0, current->BranchFactor - 1);
         while (true) {
           result = Dist(*this->G.Rand);
-          if (current->Children[result] == nullptr)
+          if (current->Children.at(result) == nullptr)
             break;
         }
       }
 
-      next_node = (current->Children[result] =
+      next_node = (current->Children.at(result) =
                        std::make_unique<WeightedSamplerGuide::Node>())
                       .get();
 
@@ -572,9 +572,9 @@ public:
 
       auto i = Dist(*this->G.Rand);
 
-      result = results[i];
+      result = results.at(i);
 
-      next_node = current->Children[result].get();
+      next_node = current->Children.at(result).get();
     }
 
     assert(next_node != nullptr);
@@ -798,6 +798,7 @@ class FileGuide;
 class FileChooser : public Chooser {
   FileGuide &G;
   std::vector<long>::size_type Pos = 0;
+  long Counter = 0;
 
 public:
   inline FileChooser(FileGuide &_G) : G(_G) {}
@@ -875,21 +876,24 @@ FileGuide::FileGuide(std::string FileName) {
   }
 }
 
-long FileChooser::choose([[maybe_unused]] long Choices) {
-  return G.Choices[Pos++];
+long FileChooser::choose(long Choices) {
+  long val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+  return val % Choices;
 }
 
-long FileChooser::chooseWeighted(
-    [[maybe_unused]] const std::vector<double> &Probs) {
-  return G.Choices[Pos++];
+long FileChooser::chooseWeighted(const std::vector<double> &Probs) {
+  long val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+  return val % Probs.size();
 }
 
-long FileChooser::chooseWeighted(
-    [[maybe_unused]] const std::vector<long> &Probs) {
-  return G.Choices[Pos++];
+long FileChooser::chooseWeighted(const std::vector<long> &Probs) {
+  long val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+  return val % Probs.size();
 }
 
-long FileChooser::chooseUnimportant() { return G.Choices[Pos++]; }
+long FileChooser::chooseUnimportant() {
+  return (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
