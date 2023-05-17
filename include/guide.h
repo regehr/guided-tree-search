@@ -30,7 +30,7 @@ static const bool Verbose = false;
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
- * abstract base class for all of the choosers
+ * abstract base classes for all of the guides and choosers
  */
 
 class Chooser {
@@ -58,7 +58,6 @@ public:
   virtual void endScope() = 0;
 };
 
-// abstract base class for all of the guides
 class Guide {
 public:
   Guide() {}
@@ -71,10 +70,10 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
- * DefaultGuide: the point of this class is to offer the naive
- * alternative to the smarter generator, as a basis for comparison and
- * so people can get used to the API without the heavyweight path
- * selection stuff going on
+ * DefaultGuide: it's just a wrapped PRNG. the point of this class is
+ * to offer the naive alternative to the smarter generators, as a
+ * basis for comparison and so people can get used to the API without
+ * the heavyweight path selection stuff going on
  */
 
 class DefaultGuide;
@@ -399,8 +398,9 @@ uint64_t BFSChooser::chooseUnimportant() {
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
- * tries to explore subtrees of the decision tree in an intelligent
- * fashion using techniques resembling cardinality estimation
+ * WeightedSamplerChooser: tries to explore subtrees of the decision
+ * tree in an intelligent fashion using techniques resembling
+ * cardinality estimation
  */
 
 class WeightedSamplerChooser;
@@ -646,25 +646,24 @@ template <typename T> class SaverChooser;
 
 template <typename T> class SaverGuide : public Guide {
   friend SaverChooser<T>;
-  std::unique_ptr<DefaultGuide> DG;
+  std::unique_ptr<T> G;
   const size_t MAX_LINE_LENGTH = 70;
 
 public:
   inline SaverGuide(uint64_t Seed) {
-    DG = std::make_unique<DefaultGuide>(Seed);
+    G = std::make_unique<T>(Seed);
   }
-  inline SaverGuide() { DG = std::make_unique<DefaultGuide>(); }
+  inline SaverGuide() { G = std::make_unique<T>(); }
   inline ~SaverGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override {
     return std::make_unique<SaverChooser<T>>(*this);
   }
   inline const std::string name() override {
-    return DG->name() + " (wrapped by Saver)";
+    return G->name() + " (wrapped by Saver)";
   }
 };
 
 template <typename T> class SaverChooser : public Chooser {
-
   enum kind { START = 777, END, NUM, NONE };
   struct rec {
     kind k;
@@ -676,7 +675,7 @@ template <typename T> class SaverChooser : public Chooser {
   std::vector<rec> Saved;
 
 public:
-  inline SaverChooser(SaverGuide<T> &_G) : G(_G) { C = G.DG->makeChooser(); }
+  inline SaverChooser(SaverGuide<T> &_G) : G(_G) { C = G.G->makeChooser(); }
   inline ~SaverChooser(){};
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
@@ -731,7 +730,7 @@ template <typename T> void SaverChooser<T>::endScope() {
   C->endScope();
 }
 
-// NB the vector referenced by the return value here's lifetime will
+// NB the lifetime of the vector referenced by the return value will
 // end when the chooser's lifetime ends
 template <typename T>
 const std::vector<uint64_t> &SaverChooser<T>::getChoices() {
@@ -850,7 +849,10 @@ std::unique_ptr<Chooser> RRGuide::makeChooser() {
 /*
  * FileGuide: loads a file of choices; every chooser that it returns
  * does exactly the same thing: makes the choices specified in the
- * file
+ * file. this guide tries to reject syntactically invalid saved
+ * choices, but also it tries to accept and deal with running out of
+ * choices (it starts returning arbitrary values) and also
+ * out-of-range choices (it reduces them to be in range)
  */
 
 class FileGuide;
