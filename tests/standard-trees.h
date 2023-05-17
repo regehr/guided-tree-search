@@ -26,9 +26,9 @@
 /*
  * maximally unbalanced n-ary tree
  */
-static unsigned long test_maximally_unbalanced_helper(tree_guide::Chooser &C,
-                                                      int Depth, int Number,
-                                                      int BranchFactor) {
+static uint64_t test_maximally_unbalanced_helper(tree_guide::Chooser &C,
+                                                      int Depth, uint64_t Number,
+                                                      uint64_t BranchFactor) {
   if (Depth == 0)
     return Number;
   auto Choice = C.choose(BranchFactor);
@@ -38,8 +38,8 @@ static unsigned long test_maximally_unbalanced_helper(tree_guide::Chooser &C,
       C, Depth - 1, Number + BranchFactor - 1, BranchFactor);
 }
 
-static unsigned long test_maximally_unbalanced(tree_guide::Chooser &C,
-                                               long &NumLeaves) {
+static uint64_t test_maximally_unbalanced(tree_guide::Chooser &C,
+                                               uint64_t &NumLeaves) {
   const int TreeDepth = 5;
   const int BranchFactor = 17;
   NumLeaves = (BranchFactor - 1) * (TreeDepth - 1) + BranchFactor;
@@ -50,8 +50,8 @@ static unsigned long test_maximally_unbalanced(tree_guide::Chooser &C,
 /*
  * full tree
  */
-static unsigned long test_full_tree_helper(tree_guide::Chooser &C, int Depth,
-                                           int Number, int BranchFactor) {
+static uint64_t test_full_tree_helper(tree_guide::Chooser &C, int Depth,
+                                           uint64_t Number, int BranchFactor) {
   if (Depth == 0) {
     return Number;
   } else {
@@ -62,14 +62,14 @@ static unsigned long test_full_tree_helper(tree_guide::Chooser &C, int Depth,
 }
 
 // x^y
-static long ipow(long x, long y) {
-  long Result = 1;
-  for (int i = 0; i < y; ++i)
+static uint64_t ipow(uint64_t x, uint64_t y) {
+  uint64_t Result = 1;
+  for (uint64_t i = 0; i < y; ++i)
     Result *= x;
   return Result;
 }
 
-static unsigned long test_full_tree(tree_guide::Chooser &C, long &NumLeaves) {
+static uint64_t test_full_tree(tree_guide::Chooser &C, uint64_t &NumLeaves) {
   const int TreeDepth = 6;
   const int BranchFactor = 2;
   NumLeaves = ipow(BranchFactor, TreeDepth);
@@ -78,7 +78,7 @@ static unsigned long test_full_tree(tree_guide::Chooser &C, long &NumLeaves) {
 }
 
 /*
- * Skewed tree: There is a long right-leaning path of depth Depth, and off
+ * Skewed tree: There is a uint64_t right-leaning path of depth Depth, and off
  * every point in that path there is a left leaning path that goes to the same
  * depth. The way to hit a leaf is either to go all the way down to the maximum
  * depth, or the go left once and then right at any point after that.
@@ -88,7 +88,7 @@ static unsigned long test_full_tree(tree_guide::Chooser &C, long &NumLeaves) {
  * larger than the left branches, so should be picked much more often.
  */
 
-static unsigned long test_right_skewed_tree_left_tree(tree_guide::Chooser &C,
+static uint64_t test_right_skewed_tree_left_tree(tree_guide::Chooser &C,
                                                       int Depth, int Number) {
 
   if (Depth == 0)
@@ -99,7 +99,7 @@ static unsigned long test_right_skewed_tree_left_tree(tree_guide::Chooser &C,
   return test_right_skewed_tree_left_tree(C, Depth - 1, Number + 1);
 }
 
-static unsigned long test_right_skewed_tree_helper(tree_guide::Chooser &C,
+static uint64_t test_right_skewed_tree_helper(tree_guide::Chooser &C,
                                                    int Depth, int Number) {
   if (Depth == 0)
     return Number;
@@ -109,8 +109,8 @@ static unsigned long test_right_skewed_tree_helper(tree_guide::Chooser &C,
   return test_right_skewed_tree_helper(C, Depth - 1, Number + Depth);
 }
 
-static unsigned long test_right_skewed_tree(tree_guide::Chooser &C,
-                                            long &NumLeaves) {
+static uint64_t test_right_skewed_tree(tree_guide::Chooser &C,
+                                            uint64_t &NumLeaves) {
   const int TreeDepth = 6;
 
   // A left tree of depth N has N + 1 leaves - one on the right, and N
@@ -126,9 +126,9 @@ static unsigned long test_right_skewed_tree(tree_guide::Chooser &C,
   return test_right_skewed_tree_helper(C, TreeDepth, 0);
 }
 /*
- * This tree offers a long dangly path with "bushes" (complete or
+ * This tree offers a uint64_t dangly path with "bushes" (complete or
  * nearly-complete binary trees) hanging off each branch of the path, with the
- * other branch leading to many more leaves. The direction of the long branch
+ * other branch leading to many more leaves. The direction of the uint64_t branch
  * zigs and zags at each stage to mess with any attempt to find a consistent
  * ordering of the paths.
  *
@@ -137,14 +137,14 @@ static unsigned long test_right_skewed_tree(tree_guide::Chooser &C,
  * finding where the bulk of the tree lies.
  */
 
-static unsigned long test_path_with_thickets_bush(tree_guide::Chooser &C,
-                                                  unsigned long Size,
-                                                  unsigned long Number) {
+static uint64_t test_path_with_thickets_bush(tree_guide::Chooser &C,
+                                                  uint64_t Size,
+                                                  uint64_t Number) {
   assert(Size > 0);
   if (Size == 1)
     return Number;
 
-  unsigned long LargeSubtreeSize = Size / 2;
+  uint64_t LargeSubtreeSize = Size / 2;
 
   if (C.choose(2) == 0)
     return test_path_with_thickets_bush(C, LargeSubtreeSize, Number);
@@ -153,10 +153,10 @@ static unsigned long test_path_with_thickets_bush(tree_guide::Chooser &C,
                                         Number + LargeSubtreeSize);
 }
 
-static unsigned long test_path_with_thickets_helper(tree_guide::Chooser &C,
-                                                    unsigned long Size,
-                                                    unsigned long Number,
-                                                    unsigned long BushSize,
+static uint64_t test_path_with_thickets_helper(tree_guide::Chooser &C,
+                                                    uint64_t Size,
+                                                    uint64_t Number,
+                                                    uint64_t BushSize,
                                                     bool BushLeft) {
   assert(Size > 0);
 
@@ -179,8 +179,8 @@ static unsigned long test_path_with_thickets_helper(tree_guide::Chooser &C,
   }
 }
 
-static unsigned long test_path_with_thickets(tree_guide::Chooser &C,
-                                             long &NumLeaves) {
+static uint64_t test_path_with_thickets(tree_guide::Chooser &C,
+                                             uint64_t &NumLeaves) {
   const int Size = 50;
   const int BushSize = 8;
   NumLeaves = Size;
@@ -192,7 +192,7 @@ static unsigned long test_path_with_thickets(tree_guide::Chooser &C,
  * tree where degree increases by one every time we descend a level
  */
 
-static unsigned long test_increasing_degree_tree_helper(tree_guide::Chooser &C,
+static uint64_t test_increasing_degree_tree_helper(tree_guide::Chooser &C,
                                                         int Depth, int Number,
                                                         int BranchFactor) {
   if (Depth == 0) {
@@ -204,8 +204,8 @@ static unsigned long test_increasing_degree_tree_helper(tree_guide::Chooser &C,
   }
 }
 
-static unsigned long test_increasing_degree_tree(tree_guide::Chooser &C,
-                                                 long &NumLeaves) {
+static uint64_t test_increasing_degree_tree(tree_guide::Chooser &C,
+                                                 uint64_t &NumLeaves) {
   const int TreeDepth = 6;
   NumLeaves = 1;
   for (int i = 1; i <= TreeDepth; ++i)
@@ -218,7 +218,7 @@ static unsigned long test_increasing_degree_tree(tree_guide::Chooser &C,
  * tree where degree decreases by one every time we descend a level
  */
 
-static unsigned long test_decreasing_degree_tree_helper(tree_guide::Chooser &C,
+static uint64_t test_decreasing_degree_tree_helper(tree_guide::Chooser &C,
                                                         int Depth, int Number,
                                                         int BranchFactor) {
   if (Depth == 0) {
@@ -230,8 +230,8 @@ static unsigned long test_decreasing_degree_tree_helper(tree_guide::Chooser &C,
   }
 }
 
-static unsigned long test_decreasing_degree_tree(tree_guide::Chooser &C,
-                                                 long &NumLeaves) {
+static uint64_t test_decreasing_degree_tree(tree_guide::Chooser &C,
+                                                 uint64_t &NumLeaves) {
   const int TreeDepth = 6;
   NumLeaves = 1;
   for (int i = 1; i <= TreeDepth; ++i)

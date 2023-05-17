@@ -1,29 +1,29 @@
 template <typename T> class PriQ {
   struct Elt {
     std::vector<T> Vec;
-    long StartPos;
+    uint64_t StartPos;
   };
   std::vector<Elt> Data;
-  long Highest = -1;
-  const long MaxFree = 256;
+  uint64_t Highest = (uint64_t)-1;
+  const uint64_t MaxFree = 256;
 
 public:
   /*
    * insert element at given level
    */
-  void insert(T t, long Level) {
-    if (Level >= (long)Data.size())
+  void insert(T t, uint64_t Level) {
+    if (Level >= (uint64_t)Data.size())
       Data.resize(Level + 1);
     Data.at(Level).Vec.push_back(t);
-    if (Highest == -1 || Level < Highest)
+    if (Highest == (uint64_t)-1 || Level < Highest)
       Highest = Level;
   }
 
   /*
    * remove item from the given level
    */
-  std::optional<T> remove(long Level) {
-    if (Level >= (long)Data.size())
+  std::optional<T> remove(uint64_t Level) {
+    if (Level >= (uint64_t)Data.size())
       return {};
     if (count(Level) < 1)
       return {};
@@ -35,8 +35,8 @@ public:
       Q.StartPos = 0;
     }
     if (Level == Highest && count(Level) == 0) {
-      Highest = -1;
-      for (long L = Level + 1; L < (long)Data.size(); ++L) {
+      Highest = (uint64_t)-1;
+      for (uint64_t L = Level + 1; L < (uint64_t)Data.size(); ++L) {
         if (count(L) > 0) {
           Highest = L;
           break;
@@ -49,10 +49,10 @@ public:
   /*
    * remove highest-priority item at any level
    */
-  std::pair<std::optional<T>, long> removeHead() {
+  std::pair<std::optional<T>, uint64_t> removeHead() {
     auto L = firstNonemptyLevel();
-    if (L == -1)
-      return {{}, -1};
+    if (L == (uint64_t)-1)
+      return {{}, (uint64_t)-1};
     else
       return {remove(L), L};
   }
@@ -60,8 +60,8 @@ public:
   /*
    * return number of items at this level
    */
-  long count(long Level) {
-    if (Level >= (long)Data.size())
+  uint64_t count(uint64_t Level) {
+    if (Level >= Data.size())
       return 0;
     return Data.at(Level).Vec.size() - Data.at(Level).StartPos;
   }
@@ -70,5 +70,5 @@ public:
    * return the smallest level that is nonempty, or else -1 if all
    * levels are empty
    */
-  long firstNonemptyLevel() { return Highest; }
+  uint64_t firstNonemptyLevel() { return Highest; }
 };

@@ -1,8 +1,8 @@
 #define TREE_TEST_CASE(TEST)                                                   \
   SECTION(#TEST) {                                                             \
     auto Tree = test_##TEST;                                                   \
-    long NumLeaves = -1;                                                       \
-    long RemainingLeaves = -1;                                                 \
+    uint64_t NumLeaves = (uint64_t)-1;                                        \
+    uint64_t RemainingLeaves = (uint64_t)-1;                                   \
     for (int rep = 0; rep < REPS; ++rep) {                                     \
       auto C = G.makeChooser();                                                \
       if (!C)                                                                  \

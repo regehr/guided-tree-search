@@ -27,8 +27,6 @@ static const bool Verbose = false;
 
 // TODO do we want to detect bad nesting of scopes?
 
-// TODO make the basic type a size_t or something instead of long
-
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -42,12 +40,12 @@ protected:
 public:
   virtual ~Chooser() {}
   // return a number in 0..n
-  virtual long choose(long n) = 0;
+  virtual uint64_t choose(uint64_t n) = 0;
   // shorthand for choose(2)
   virtual bool flip() = 0;
   // weighted choice
-  virtual long chooseWeighted(const std::vector<double> &) = 0;
-  virtual long chooseWeighted(const std::vector<long> &) = 0;
+  virtual uint64_t chooseWeighted(const std::vector<double> &) = 0;
+  virtual uint64_t chooseWeighted(const std::vector<uint64_t> &) = 0;
   /*
    * this call has a very specific contract: it does not cause the
    * decision tree to branch; it must only be used when the value that
@@ -55,7 +53,7 @@ public:
    * generator. it might be used, for example, to generate a literal
    * constant in the output, or the name of an identifer
    */
-  virtual long chooseUnimportant() = 0;
+  virtual uint64_t chooseUnimportant() = 0;
   virtual void beginScope() = 0;
   virtual void endScope() = 0;
 };
@@ -64,7 +62,7 @@ public:
 class Guide {
 public:
   Guide() {}
-  Guide(long) {}
+  Guide(uint64_t) {}
   virtual ~Guide() {}
   virtual std::unique_ptr<Chooser> makeChooser() = 0;
   virtual const std::string name() = 0;
@@ -87,11 +85,11 @@ class DefaultChooser : public Chooser {
 public:
   inline DefaultChooser(DefaultGuide &_G) : G(_G) {}
   inline ~DefaultChooser(){};
-  inline long choose(long Choices) override;
+  inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
-  inline long chooseWeighted(const std::vector<double> &) override;
-  inline long chooseWeighted(const std::vector<long> &) override;
-  inline long chooseUnimportant() override;
+  inline uint64_t chooseWeighted(const std::vector<double> &) override;
+  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
+  inline uint64_t chooseUnimportant() override;
   inline void beginScope() override{};
   inline void endScope() override{};
 };
@@ -101,7 +99,7 @@ class DefaultGuide : public Guide {
   std::unique_ptr<std::mt19937_64> Rand;
 
 public:
-  inline DefaultGuide(long Seed) {
+  inline DefaultGuide(uint64_t Seed) {
     Rand = std::make_unique<std::mt19937_64>(Seed);
   }
   inline DefaultGuide() : DefaultGuide(std::random_device{}()) {}
@@ -112,24 +110,24 @@ public:
   inline const std::string name() override { return "default"; }
 };
 
-long DefaultChooser::choose(long Choices) {
+uint64_t DefaultChooser::choose(uint64_t Choices) {
   std::uniform_int_distribution<int> Dist(0, Choices - 1);
   return Dist(*this->G.Rand);
 }
 
-long DefaultChooser::chooseWeighted(const std::vector<double> &Probs) {
-  std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
+uint64_t DefaultChooser::chooseWeighted(const std::vector<double> &Probs) {
+  std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
   return Discrete(*this->G.Rand);
 }
 
-long DefaultChooser::chooseWeighted(const std::vector<long> &Probs) {
-  std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
+uint64_t DefaultChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
+  std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
   return Discrete(*this->G.Rand);
 }
 
-long DefaultChooser::chooseUnimportant() {
-  std::uniform_int_distribution<long> Dist(std::numeric_limits<long>::min(),
-                                           std::numeric_limits<long>::max());
+uint64_t DefaultChooser::chooseUnimportant() {
+  std::uniform_int_distribution<uint64_t> Dist(std::numeric_limits<uint64_t>::min(),
+                                           std::numeric_limits<uint64_t>::max());
   return Dist(*this->G.Rand);
 }
 
@@ -153,16 +151,16 @@ class BFSGuide : public Guide {
     std::vector<std::unique_ptr<BFSGuide::Node>> Children;
   };
 
-  long TotalNodes = 0;
+  uint64_t TotalNodes = 0;
   std::unique_ptr<BFSGuide::Node> Root;
   PriQ<Node *> PendingPaths;
-  long MaxSavedLevel = -1;
+  uint64_t MaxSavedLevel = (uint64_t)-1;
   bool Choosing = false, Started = false;
   // TODO move this into the chooser?
   std::unique_ptr<std::mt19937_64> Rand;
 
 public:
-  inline BFSGuide(long Seed);
+  inline BFSGuide(uint64_t Seed);
   inline BFSGuide() : BFSGuide(std::random_device{}()) {}
   inline ~BFSGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override;
@@ -173,24 +171,24 @@ class BFSChooser : public Chooser {
   friend BFSGuide;
   BFSGuide &G;
   BFSGuide::Node *Current;
-  long LastChoice = 0, Level = 0;
+  uint64_t LastChoice = 0, Level = 0;
   // this vector is in reverse order so we can pop stuff efficiently
-  std::vector<long> SavedChoices;
-  inline long chooseInternal(long, std::function<long()>);
+  std::vector<uint64_t> SavedChoices;
+  inline uint64_t chooseInternal(uint64_t, std::function<uint64_t()>);
 
 public:
   inline BFSChooser(BFSGuide &_G) : G(_G) { Current = &*G.Root; }
   inline ~BFSChooser();
-  inline long choose(long Choices) override;
+  inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override;
-  inline long chooseWeighted(const std::vector<double> &) override;
-  inline long chooseWeighted(const std::vector<long> &) override;
-  inline long chooseUnimportant() override;
+  inline uint64_t chooseWeighted(const std::vector<double> &) override;
+  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
+  inline uint64_t chooseUnimportant() override;
   inline void beginScope() override{};
   inline void endScope() override{};
 };
 
-BFSGuide::BFSGuide(long Seed) {
+BFSGuide::BFSGuide(uint64_t Seed) {
   Root = std::make_unique<BFSGuide::Node>();
   Root->Children.resize(1);
   Rand = std::make_unique<std::mt19937_64>(Seed);
@@ -218,7 +216,7 @@ std::unique_ptr<Chooser> BFSGuide::makeChooser() {
    */
   auto [OptionalNode, SavedLevel] = PendingPaths.removeHead();
   if (OptionalNode.has_value()) {
-    assert(SavedLevel >= MaxSavedLevel);
+    assert((MaxSavedLevel == (uint64_t)-1) || (SavedLevel >= MaxSavedLevel));
     if (Verbose && SavedLevel > MaxSavedLevel)
       std::cout << "fully explored up to " << SavedLevel << "\n";
     MaxSavedLevel = SavedLevel;
@@ -229,11 +227,11 @@ std::unique_ptr<Chooser> BFSGuide::makeChooser() {
     // this loop walks up to the root, saving the decisions that we
     // have to make to get back down here
     do {
-      long Next = -1;
-      long S = N->Children.size();
+      uint64_t Next = (uint64_t)-1;
+      uint64_t S = N->Children.size();
       if (N2) {
         // we're above the target node, so just get to the target
-        for (long i = 0; i < S; ++i) {
+        for (uint64_t i = 0; i < S; ++i) {
           if (N->Children.at(i).get() == N2) {
             Next = i;
             break;
@@ -245,8 +243,8 @@ std::unique_ptr<Chooser> BFSGuide::makeChooser() {
       } else {
         // we're at the target node, so find an untaken branch
         // TODO: this is deterministic, it would be better to pick a random one
-        long NumUntaken = 0;
-        for (long i = 0; i < S; ++i) {
+        uint64_t NumUntaken = 0;
+        for (uint64_t i = 0; i < S; ++i) {
           if (Verbose)
             std::cout << "    child " << i << " = " << N->Children.at(i).get()
                       << "\n";
@@ -269,7 +267,7 @@ std::unique_ptr<Chooser> BFSGuide::makeChooser() {
           PendingPaths.insert(N, SavedLevel);
         }
       }
-      assert(Next != -1);
+      assert(Next != (uint64_t)-1);
       C->SavedChoices.push_back(Next);
       N2 = N;
       N = N->Parent;
@@ -303,8 +301,8 @@ BFSChooser::~BFSChooser() {
   G.Choosing = false;
 }
 
-long BFSChooser::chooseInternal(const long Choices,
-                                std::function<long()> randomChoice) {
+uint64_t BFSChooser::chooseInternal(const uint64_t Choices,
+                                std::function<uint64_t()> randomChoice) {
   assert(G.Choosing);
   if (Verbose) {
     std::cout << "choose(" << Choices << ")\n";
@@ -312,7 +310,7 @@ long BFSChooser::chooseInternal(const long Choices,
               << "\n";
   }
 
-  long Choice;
+  uint64_t Choice;
   auto N = Current->Children.at(LastChoice).get();
   if (Verbose)
     std::cout << "Node pointer = " << N << "\n";
@@ -320,7 +318,7 @@ long BFSChooser::chooseInternal(const long Choices,
     /*
      * we've arrived at a tree node that has already been visited
      */
-    if ((unsigned long)Choices != N->Children.size()) {
+    if (Choices != N->Children.size()) {
       // TODO it's unfriendly to exit here, but this is a critical API
       // violation. alternatively, of course we could throw an
       // exception
@@ -328,7 +326,7 @@ long BFSChooser::chooseInternal(const long Choices,
                    "number of choices this time\n\n";
       exit(-1);
     }
-    long NumSavedChoices = SavedChoices.size();
+    uint64_t NumSavedChoices = SavedChoices.size();
     if (Verbose)
       std::cout << "  There are " << NumSavedChoices << " saved choices\n";
     assert(NumSavedChoices > 0);
@@ -367,8 +365,8 @@ long BFSChooser::chooseInternal(const long Choices,
   return Choice;
 }
 
-long BFSChooser::choose(long Choices) {
-  return chooseInternal(Choices, [&]() -> long {
+uint64_t BFSChooser::choose(uint64_t Choices) {
+  return chooseInternal(Choices, [&]() -> uint64_t {
     std::uniform_int_distribution<int> Dist(0, Choices - 1);
     return Dist(*G.Rand);
   });
@@ -376,23 +374,23 @@ long BFSChooser::choose(long Choices) {
 
 bool BFSChooser::flip() { return choose(2); }
 
-long BFSChooser::chooseWeighted(const std::vector<double> &Probs) {
-  return chooseInternal(Probs.size(), [&]() -> long {
-    std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
+uint64_t BFSChooser::chooseWeighted(const std::vector<double> &Probs) {
+  return chooseInternal(Probs.size(), [&]() -> uint64_t {
+    std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
     return Discrete(*this->G.Rand);
   });
 }
 
-long BFSChooser::chooseWeighted(const std::vector<long> &Probs) {
-  return chooseInternal(Probs.size(), [&]() -> long {
-    std::discrete_distribution<long> Discrete(Probs.begin(), Probs.end());
+uint64_t BFSChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
+  return chooseInternal(Probs.size(), [&]() -> uint64_t {
+    std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
     return Discrete(*this->G.Rand);
   });
 }
 
-long BFSChooser::chooseUnimportant() {
-  std::uniform_int_distribution<long> Dist(std::numeric_limits<long>::min(),
-                                           std::numeric_limits<long>::max());
+uint64_t BFSChooser::chooseUnimportant() {
+  std::uniform_int_distribution<uint64_t> Dist(std::numeric_limits<uint64_t>::min(),
+                                           std::numeric_limits<uint64_t>::max());
   return Dist(*this->G.Rand);
 }
 
@@ -412,7 +410,7 @@ class WeightedSamplerGuide : public Guide {
     bool visited = false;
     size_t BranchFactor;
     std::vector<double> Weights;
-    std::unordered_map<long, std::unique_ptr<Node>> Children;
+    std::unordered_map<uint64_t, std::unique_ptr<Node>> Children;
     double SizeEstimate;
 
     inline Node() {}
@@ -471,7 +469,7 @@ class WeightedSamplerGuide : public Guide {
   std::unique_ptr<std::mt19937_64> Rand;
 
 public:
-  inline WeightedSamplerGuide(long Seed) {
+  inline WeightedSamplerGuide(uint64_t Seed) {
     this->Root = std::make_unique<Node>();
     this->Rand = std::make_unique<std::mt19937_64>(Seed);
   }
@@ -513,7 +511,7 @@ public:
     }
   };
 
-  inline long choose(long Choices, const std::vector<double> &Weights) {
+  inline uint64_t choose(uint64_t Choices, const std::vector<double> &Weights) {
     WeightedSamplerGuide::Node *current = this->Trail.back();
     current->visit(Choices, Weights);
 
@@ -545,7 +543,7 @@ public:
 
     if (explore) {
       if (current->Weights.size() > 0) {
-        std::discrete_distribution<long> Dist(current->Weights.begin(),
+        std::discrete_distribution<uint64_t> Dist(current->Weights.begin(),
                                               current->Weights.end());
         while (true) {
           result = Dist(*this->G.Rand);
@@ -553,7 +551,7 @@ public:
             break;
         }
       } else {
-        std::uniform_int_distribution<long> Dist(0, current->BranchFactor - 1);
+        std::uniform_int_distribution<uint64_t> Dist(0, current->BranchFactor - 1);
         while (true) {
           result = Dist(*this->G.Rand);
           if (current->Children[result] == nullptr)
@@ -566,7 +564,7 @@ public:
                       .get();
 
     } else {
-      std::vector<long> results;
+      std::vector<uint64_t> results;
       std::vector<double> weights;
 
       for (auto &t : current->Children) {
@@ -593,15 +591,15 @@ public:
     return result;
   };
 
-  inline long choose(long Choices) override {
+  inline uint64_t choose(uint64_t Choices) override {
     std::vector<double> empty;
     return this->choose(Choices, empty);
   }
 
   inline bool flip() override { return choose(2); }
-  inline long chooseWeighted(const std::vector<double> &) override;
-  inline long chooseWeighted(const std::vector<long> &) override;
-  inline long chooseUnimportant() override;
+  inline uint64_t chooseWeighted(const std::vector<double> &) override;
+  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
+  inline uint64_t chooseUnimportant() override;
   inline void beginScope() override{};
   inline void endScope() override{};
 };
@@ -610,12 +608,12 @@ std::unique_ptr<Chooser> WeightedSamplerGuide::makeChooser() {
   return std::make_unique<WeightedSamplerChooser>(*this);
 }
 
-long WeightedSamplerChooser::chooseWeighted(const std::vector<double> &Probs) {
+uint64_t WeightedSamplerChooser::chooseWeighted(const std::vector<double> &Probs) {
   return this->choose(Probs.size(), Probs);
 }
 
-long WeightedSamplerChooser::chooseWeighted(const std::vector<long> &Probs) {
-  long Total = 0;
+uint64_t WeightedSamplerChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
+  uint64_t Total = 0;
   for (auto I : Probs)
     Total += I;
   std::vector<double> V;
@@ -624,9 +622,9 @@ long WeightedSamplerChooser::chooseWeighted(const std::vector<long> &Probs) {
   return this->choose(Probs.size(), V);
 }
 
-long WeightedSamplerChooser::chooseUnimportant() {
-  std::uniform_int_distribution<long> Dist(std::numeric_limits<long>::min(),
-                                           std::numeric_limits<long>::max());
+uint64_t WeightedSamplerChooser::chooseUnimportant() {
+  std::uniform_int_distribution<uint64_t> Dist(std::numeric_limits<uint64_t>::min(),
+                                           std::numeric_limits<uint64_t>::max());
   return Dist(*this->G.Rand);
 }
 
@@ -646,7 +644,7 @@ template <typename T> class SaverGuide : public Guide {
   const size_t MAX_LINE_LENGTH = 70;
 
 public:
-  inline SaverGuide(long Seed) { DG = std::make_unique<DefaultGuide>(Seed); }
+  inline SaverGuide(uint64_t Seed) { DG = std::make_unique<DefaultGuide>(Seed); }
   inline SaverGuide() { DG = std::make_unique<DefaultGuide>(); }
   inline ~SaverGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override {
@@ -662,7 +660,7 @@ template <typename T> class SaverChooser : public Chooser {
   enum kind { START = 777, END, NUM, NONE };
   struct rec {
     kind k;
-    long v;
+    uint64_t v;
   };
 
   SaverGuide<T> &G;
@@ -672,18 +670,18 @@ template <typename T> class SaverChooser : public Chooser {
 public:
   inline SaverChooser(SaverGuide<T> &_G) : G(_G) { C = G.DG->makeChooser(); }
   inline ~SaverChooser(){};
-  inline long choose(long Choices) override;
+  inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
-  inline long chooseWeighted(const std::vector<double> &) override;
-  inline long chooseWeighted(const std::vector<long> &) override;
-  inline long chooseUnimportant() override;
-  inline const std::vector<long> &getChoices();
+  inline uint64_t chooseWeighted(const std::vector<double> &) override;
+  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
+  inline uint64_t chooseUnimportant() override;
+  inline const std::vector<uint64_t> &getChoices();
   inline const std::string formatChoices();
   inline void beginScope() override;
   inline void endScope() override;
 };
 
-template <typename T> long SaverChooser<T>::choose(long Choices) {
+template <typename T> uint64_t SaverChooser<T>::choose(uint64_t Choices) {
   auto X = C->choose(Choices);
   rec r{NUM, X};
   Saved.push_back(r);
@@ -691,7 +689,7 @@ template <typename T> long SaverChooser<T>::choose(long Choices) {
 }
 
 template <typename T>
-long SaverChooser<T>::chooseWeighted(const std::vector<double> &Probs) {
+uint64_t SaverChooser<T>::chooseWeighted(const std::vector<double> &Probs) {
   auto X = C->chooseWeighted(Probs);
   rec r{NUM, X};
   Saved.push_back(r);
@@ -699,14 +697,14 @@ long SaverChooser<T>::chooseWeighted(const std::vector<double> &Probs) {
 }
 
 template <typename T>
-long SaverChooser<T>::chooseWeighted(const std::vector<long> &Probs) {
+uint64_t SaverChooser<T>::chooseWeighted(const std::vector<uint64_t> &Probs) {
   auto X = C->chooseWeighted(Probs);
   rec r{NUM, X};
   Saved.push_back(r);
   return X;
 }
 
-template <typename T> long SaverChooser<T>::chooseUnimportant() {
+template <typename T> uint64_t SaverChooser<T>::chooseUnimportant() {
   auto X = C->chooseUnimportant();
   rec r{NUM, X};
   Saved.push_back(r);
@@ -727,14 +725,14 @@ template <typename T> void SaverChooser<T>::endScope() {
 
 // NB the vector referenced by the return value here's lifetime will
 // end when the chooser's lifetime ends
-template <typename T> const std::vector<long> &SaverChooser<T>::getChoices() {
+template <typename T> const std::vector<uint64_t> &SaverChooser<T>::getChoices() {
   return Saved;
 }
 
 template <typename T> const std::string SaverChooser<T>::formatChoices() {
   std::string s;
   s += "/*\n * FORMATTED CHOICES:\n";
-  std::vector<long>::size_type pos = 0;
+  std::vector<uint64_t>::size_type pos = 0;
   std::string line = " * ";
   while (pos < Saved.size()) {
     std::string item;
@@ -780,7 +778,7 @@ class RRGuide : public Guide {
   size_t Current = 0;
 
 public:
-  inline RRGuide(long Seed) = delete;
+  inline RRGuide(uint64_t Seed) = delete;
   inline RRGuide() = delete;
   inline RRGuide(const std::vector<Guide *> &_Gs) : Gs(_Gs) {}
   inline ~RRGuide() {}
@@ -808,27 +806,27 @@ public:
     } while (C == nullptr && !Reset);
   }
   inline ~RRChooser(){};
-  inline long choose(long Choices) override;
+  inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
-  inline long chooseWeighted(const std::vector<double> &) override;
-  inline long chooseWeighted(const std::vector<long> &) override;
-  inline long chooseUnimportant() override;
+  inline uint64_t chooseWeighted(const std::vector<double> &) override;
+  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
+  inline uint64_t chooseUnimportant() override;
   inline bool hasSubChooser() { return C != nullptr; }
   inline void beginScope() override { C->beginScope(); };
   inline void endScope() override { C->endScope(); };
 };
 
-long RRChooser::choose(long Choices) { return C->choose(Choices); }
+uint64_t RRChooser::choose(uint64_t Choices) { return C->choose(Choices); }
 
-long RRChooser::chooseWeighted(const std::vector<double> &Probs) {
+uint64_t RRChooser::chooseWeighted(const std::vector<double> &Probs) {
   return C->chooseWeighted(Probs);
 }
 
-long RRChooser::chooseWeighted(const std::vector<long> &Probs) {
+uint64_t RRChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   return C->chooseWeighted(Probs);
 }
 
-long RRChooser::chooseUnimportant() { return C->chooseUnimportant(); }
+uint64_t RRChooser::chooseUnimportant() { return C->chooseUnimportant(); }
 
 std::unique_ptr<Chooser> RRGuide::makeChooser() {
   auto C = std::make_unique<RRChooser>(*this);
@@ -850,30 +848,30 @@ class FileGuide;
 
 class FileChooser : public Chooser {
   FileGuide &G;
-  std::vector<long>::size_type Pos = 0;
-  long Counter = 0;
+  std::vector<uint64_t>::size_type Pos = 0;
+  uint64_t Counter = 0;
 
 public:
   inline FileChooser(FileGuide &_G) : G(_G) {}
   inline ~FileChooser(){};
-  inline long choose(long Choices) override;
+  inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
-  inline long chooseWeighted(const std::vector<double> &) override;
-  inline long chooseWeighted(const std::vector<long> &) override;
-  inline long chooseUnimportant() override;
+  inline uint64_t chooseWeighted(const std::vector<double> &) override;
+  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
+  inline uint64_t chooseUnimportant() override;
   inline void beginScope() override{};
   inline void endScope() override{};
 };
 
 class FileGuide : public Guide {
   friend FileChooser;
-  std::vector<long> Choices;
+  std::vector<uint64_t> Choices;
   const std::string StartMarker = "* FORMATTED CHOICES:";
   const std::string EndMarker = "*/";
   enum kind { START = 777, END, NUM, NONE };
 
 public:
-  inline FileGuide(long Seed) = delete;
+  inline FileGuide(uint64_t Seed) = delete;
   inline FileGuide() = delete;
   inline FileGuide(std::string);
   inline ~FileGuide() {}
@@ -902,7 +900,7 @@ FileGuide::FileGuide(std::string FileName) {
                     << FileName << "' to start with ' * '\n\n";
           exit(-1);
         }
-        long val = 0;
+        uint64_t val = 0;
         kind k = NONE;
         for (std::string::size_type pos = 3; pos < line.length(); ++pos) {
           auto c = line[pos];
@@ -962,22 +960,22 @@ FileGuide::FileGuide(std::string FileName) {
  *   sampling loop to run forever
  */
 
-long FileChooser::choose(long Choices) {
-  long val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+uint64_t FileChooser::choose(uint64_t Choices) {
+  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
   return val % Choices;
 }
 
-long FileChooser::chooseWeighted(const std::vector<double> &Probs) {
-  long val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+uint64_t FileChooser::chooseWeighted(const std::vector<double> &Probs) {
+  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
   return val % Probs.size();
 }
 
-long FileChooser::chooseWeighted(const std::vector<long> &Probs) {
-  long val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+uint64_t FileChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
+  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
   return val % Probs.size();
 }
 
-long FileChooser::chooseUnimportant() {
+uint64_t FileChooser::chooseUnimportant() {
   return (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
 }
 
