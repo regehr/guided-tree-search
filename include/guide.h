@@ -25,6 +25,10 @@ static const bool Verbose = false;
 // TODO just inline this file at some point
 #include "priq.h"
 
+// TODO do we want to detect bad nesting of scopes?
+
+// TODO make the basic type a size_t or something instead of long
+
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -52,6 +56,8 @@ public:
    * constant in the output, or the name of an identifer
    */
   virtual long chooseUnimportant() = 0;
+  virtual void beginScope() = 0;
+  virtual void endScope() = 0;
 };
 
 // abstract base class for all of the guides
@@ -86,6 +92,8 @@ public:
   inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
+  inline void beginScope() override {};
+  inline void endScope() override {};
 };
 
 class DefaultGuide : public Guide {
@@ -178,6 +186,8 @@ public:
   inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
+  inline void beginScope() override {};
+  inline void endScope() override {};
 };
 
 BFSGuide::BFSGuide(long Seed) {
@@ -592,6 +602,8 @@ public:
   inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
+  inline void beginScope() override {};
+  inline void endScope() override {};
 };
 
 std::unique_ptr<Chooser> WeightedSamplerGuide::makeChooser() {
@@ -644,11 +656,18 @@ public:
     return DG->name() + " (wrapped by Saver)";
   }
 };
-
+  
 template <typename T> class SaverChooser : public Chooser {
+
+  enum kind { START = 777, END, NUM, NONE };
+  struct rec {
+    kind k;
+    long v;
+  };
+  
   SaverGuide<T> &G;
   std::unique_ptr<Chooser> C;
-  std::vector<long> Saved;
+  std::vector<rec> Saved;
 
 public:
   inline SaverChooser(SaverGuide<T> &_G) : G(_G) { C = G.DG->makeChooser(); }
@@ -660,32 +679,50 @@ public:
   inline long chooseUnimportant() override;
   inline const std::vector<long> &getChoices();
   inline const std::string formatChoices();
+  inline void beginScope() override;
+  inline void endScope() override;
 };
 
 template <typename T> long SaverChooser<T>::choose(long Choices) {
   auto X = C->choose(Choices);
-  Saved.push_back(X);
+  rec r { NUM, X };
+  Saved.push_back(r);
   return X;
 }
 
 template <typename T>
 long SaverChooser<T>::chooseWeighted(const std::vector<double> &Probs) {
   auto X = C->chooseWeighted(Probs);
-  Saved.push_back(X);
+  rec r { NUM, X };
+  Saved.push_back(r);
   return X;
 }
 
 template <typename T>
 long SaverChooser<T>::chooseWeighted(const std::vector<long> &Probs) {
   auto X = C->chooseWeighted(Probs);
-  Saved.push_back(X);
+  rec r { NUM, X };
+  Saved.push_back(r);
   return X;
 }
 
 template <typename T> long SaverChooser<T>::chooseUnimportant() {
   auto X = C->chooseUnimportant();
-  Saved.push_back(X);
+  rec r { NUM, X };
+  Saved.push_back(r);
   return X;
+}
+
+template <typename T> void SaverChooser<T>::beginScope() {
+  rec r { START, 0 };
+  Saved.push_back(r);
+  C->beginScope();
+}
+
+template <typename T> void SaverChooser<T>::endScope() {
+  rec r { END, 0 };
+  Saved.push_back(r);
+  C->endScope();
 }
 
 // NB the vector referenced by the return value here's lifetime will
@@ -700,12 +737,26 @@ template <typename T> const std::string SaverChooser<T>::formatChoices() {
   std::vector<long>::size_type pos = 0;
   std::string line = " * ";
   while (pos < Saved.size()) {
-    std::string num = std::to_string(Saved.at(pos)) + ",";
-    if (line.length() + num.length() >= G.MAX_LINE_LENGTH) {
+    std::string item;
+    switch (Saved.at(pos).k) {
+    case START:
+      item = "{";
+      break;
+    case END:
+      item = "}";
+      break;
+    case NUM:
+      item = std::to_string(Saved.at(pos).v);
+      break;
+    default:
+      assert(false);
+    }
+    item += ",";
+    if (line.length() + item.length() >= G.MAX_LINE_LENGTH) {
       s += line + "\n";
-      line = " * " + num;
+      line = " * " + item;
     } else {
-      line += num;
+      line += item;
     }
     ++pos;
   }
@@ -763,6 +814,8 @@ public:
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
   inline bool hasSubChooser() { return C != nullptr; }
+  inline void beginScope() override { C->beginScope(); };
+  inline void endScope() override { C->endScope(); };
 };
 
 long RRChooser::choose(long Choices) { return C->choose(Choices); }
@@ -808,6 +861,8 @@ public:
   inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
+  inline void beginScope() override {};
+  inline void endScope() override {};
 };
 
 class FileGuide : public Guide {
@@ -815,6 +870,7 @@ class FileGuide : public Guide {
   std::vector<long> Choices;
   const std::string StartMarker = "* FORMATTED CHOICES:";
   const std::string EndMarker = "*/";
+  enum kind { START = 777, END, NUM, NONE };
 
 public:
   inline FileGuide(long Seed) = delete;
@@ -847,14 +903,31 @@ FileGuide::FileGuide(std::string FileName) {
 	  exit(-1);
         }
         long val = 0;
+        kind k = NONE;
         for (std::string::size_type pos = 3; pos < line.length(); ++pos) {
           auto c = line[pos];
           if (c == ',') {
-            Choices.push_back(val);
-            val = 0;
+            switch (k) {
+            case NUM:
+              Choices.push_back(val);
+              val = 0;
+              break;
+            case START:
+              break;
+            case END:
+              break;
+            default:
+              assert(false);
+            }
+            k = NONE;
           } else if (c >= '0' && c <= '9') {
             val *= 10;
             val += c - '0';
+            k = NUM;
+          } else if (c == '{') {
+            k = START;
+          } else if (c == '}') {
+            k = END;
           } else {
             std::cerr << "FATAL ERROR: Illegal character '" << c
                       << "' in choice string in '" << FileName << "'\n\n";

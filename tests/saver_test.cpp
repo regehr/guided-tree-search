@@ -7,19 +7,19 @@
 
 #include "regex.h"
 
-const long N = 100;
-const long Depth = 25;
+const long N = 1000;
+const long MaxDepth = 50;
 
 using namespace std;
 using namespace tree_guide;
 
 vector<string> FNs;
 vector<string> Generated;
-int pass = 0;
 
 void save_choices() {
   SaverGuide<DefaultGuide> G;
   for (int i = 0; i < N; ++i) {
+    long Depth = 1 + (i % MaxDepth);
     auto C1 = G.makeChooser();
     assert(C1);
     auto C2 = static_cast<SaverChooser<DefaultGuide> *>(C1.get());
@@ -38,8 +38,10 @@ void save_choices() {
   }
 }
 
-void use_choices() {
+int use_choices() {
+  int pass = 0;
   for (int i = 0; i < N; ++i) {
+    long Depth = 1 + (i % MaxDepth);
     FileGuide G(FNs.at(i));
     auto C = G.makeChooser();
     assert(C);
@@ -48,10 +50,11 @@ void use_choices() {
     ++pass;
     remove(FNs.at(i).c_str());
   }
+  return pass;
 }
 
 int main() {
   save_choices();
-  use_choices();
+  int pass = use_choices();
   cout << pass << " tests passed.\n";
 }

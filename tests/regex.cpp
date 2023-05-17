@@ -23,7 +23,7 @@ static long num(tree_guide::Chooser &C, long min, long max) {
   return min + C.choose(max - min);
 }
 
-std::string gen(tree_guide::Chooser &C, long Depth) {
+static std::string gen_helper(tree_guide::Chooser &C, long Depth) {
   --Depth;
   if (Depth == 0)
     return _char(C);
@@ -56,6 +56,13 @@ std::string gen(tree_guide::Chooser &C, long Depth) {
   default:
     assert(false);
   }
+}
+
+std::string gen(tree_guide::Chooser &C, long Depth) {
+  C.beginScope();
+  auto s = gen_helper(C, Depth);
+  C.endScope();
+  return s;
 }
 
 //////////////////////////////////////////////////////////////////////////////
