@@ -27,8 +27,8 @@
  * maximally unbalanced n-ary tree
  */
 static uint64_t test_maximally_unbalanced_helper(tree_guide::Chooser &C,
-                                                      int Depth, uint64_t Number,
-                                                      uint64_t BranchFactor) {
+                                                 int Depth, uint64_t Number,
+                                                 uint64_t BranchFactor) {
   if (Depth == 0)
     return Number;
   auto Choice = C.choose(BranchFactor);
@@ -39,7 +39,7 @@ static uint64_t test_maximally_unbalanced_helper(tree_guide::Chooser &C,
 }
 
 static uint64_t test_maximally_unbalanced(tree_guide::Chooser &C,
-                                               uint64_t &NumLeaves) {
+                                          uint64_t &NumLeaves) {
   const int TreeDepth = 5;
   const int BranchFactor = 17;
   NumLeaves = (BranchFactor - 1) * (TreeDepth - 1) + BranchFactor;
@@ -51,7 +51,7 @@ static uint64_t test_maximally_unbalanced(tree_guide::Chooser &C,
  * full tree
  */
 static uint64_t test_full_tree_helper(tree_guide::Chooser &C, int Depth,
-                                           uint64_t Number, int BranchFactor) {
+                                      uint64_t Number, int BranchFactor) {
   if (Depth == 0) {
     return Number;
   } else {
@@ -89,7 +89,7 @@ static uint64_t test_full_tree(tree_guide::Chooser &C, uint64_t &NumLeaves) {
  */
 
 static uint64_t test_right_skewed_tree_left_tree(tree_guide::Chooser &C,
-                                                      int Depth, int Number) {
+                                                 int Depth, int Number) {
 
   if (Depth == 0)
     return Number;
@@ -99,8 +99,8 @@ static uint64_t test_right_skewed_tree_left_tree(tree_guide::Chooser &C,
   return test_right_skewed_tree_left_tree(C, Depth - 1, Number + 1);
 }
 
-static uint64_t test_right_skewed_tree_helper(tree_guide::Chooser &C,
-                                                   int Depth, int Number) {
+static uint64_t test_right_skewed_tree_helper(tree_guide::Chooser &C, int Depth,
+                                              int Number) {
   if (Depth == 0)
     return Number;
   auto Choice = C.choose(2);
@@ -110,7 +110,7 @@ static uint64_t test_right_skewed_tree_helper(tree_guide::Chooser &C,
 }
 
 static uint64_t test_right_skewed_tree(tree_guide::Chooser &C,
-                                            uint64_t &NumLeaves) {
+                                       uint64_t &NumLeaves) {
   const int TreeDepth = 6;
 
   // A left tree of depth N has N + 1 leaves - one on the right, and N
@@ -128,9 +128,9 @@ static uint64_t test_right_skewed_tree(tree_guide::Chooser &C,
 /*
  * This tree offers a uint64_t dangly path with "bushes" (complete or
  * nearly-complete binary trees) hanging off each branch of the path, with the
- * other branch leading to many more leaves. The direction of the uint64_t branch
- * zigs and zags at each stage to mess with any attempt to find a consistent
- * ordering of the paths.
+ * other branch leading to many more leaves. The direction of the uint64_t
+ * branch zigs and zags at each stage to mess with any attempt to find a
+ * consistent ordering of the paths.
  *
  * A notable feature of this test is that trying to traverse it breadth first
  * (in any order) will go wrong because it will get caught in a bush rather than
@@ -138,8 +138,7 @@ static uint64_t test_right_skewed_tree(tree_guide::Chooser &C,
  */
 
 static uint64_t test_path_with_thickets_bush(tree_guide::Chooser &C,
-                                                  uint64_t Size,
-                                                  uint64_t Number) {
+                                             uint64_t Size, uint64_t Number) {
   assert(Size > 0);
   if (Size == 1)
     return Number;
@@ -154,10 +153,9 @@ static uint64_t test_path_with_thickets_bush(tree_guide::Chooser &C,
 }
 
 static uint64_t test_path_with_thickets_helper(tree_guide::Chooser &C,
-                                                    uint64_t Size,
-                                                    uint64_t Number,
-                                                    uint64_t BushSize,
-                                                    bool BushLeft) {
+                                               uint64_t Size, uint64_t Number,
+                                               uint64_t BushSize,
+                                               bool BushLeft) {
   assert(Size > 0);
 
   if (Size <= BushSize)
@@ -180,7 +178,7 @@ static uint64_t test_path_with_thickets_helper(tree_guide::Chooser &C,
 }
 
 static uint64_t test_path_with_thickets(tree_guide::Chooser &C,
-                                             uint64_t &NumLeaves) {
+                                        uint64_t &NumLeaves) {
   const int Size = 50;
   const int BushSize = 8;
   NumLeaves = Size;
@@ -193,8 +191,8 @@ static uint64_t test_path_with_thickets(tree_guide::Chooser &C,
  */
 
 static uint64_t test_increasing_degree_tree_helper(tree_guide::Chooser &C,
-                                                        int Depth, int Number,
-                                                        int BranchFactor) {
+                                                   int Depth, int Number,
+                                                   int BranchFactor) {
   if (Depth == 0) {
     return Number;
   } else {
@@ -205,7 +203,7 @@ static uint64_t test_increasing_degree_tree_helper(tree_guide::Chooser &C,
 }
 
 static uint64_t test_increasing_degree_tree(tree_guide::Chooser &C,
-                                                 uint64_t &NumLeaves) {
+                                            uint64_t &NumLeaves) {
   const int TreeDepth = 6;
   NumLeaves = 1;
   for (int i = 1; i <= TreeDepth; ++i)
@@ -219,8 +217,8 @@ static uint64_t test_increasing_degree_tree(tree_guide::Chooser &C,
  */
 
 static uint64_t test_decreasing_degree_tree_helper(tree_guide::Chooser &C,
-                                                        int Depth, int Number,
-                                                        int BranchFactor) {
+                                                   int Depth, int Number,
+                                                   int BranchFactor) {
   if (Depth == 0) {
     return Number;
   } else {
@@ -231,7 +229,7 @@ static uint64_t test_decreasing_degree_tree_helper(tree_guide::Chooser &C,
 }
 
 static uint64_t test_decreasing_degree_tree(tree_guide::Chooser &C,
-                                                 uint64_t &NumLeaves) {
+                                            uint64_t &NumLeaves) {
   const int TreeDepth = 6;
   NumLeaves = 1;
   for (int i = 1; i <= TreeDepth; ++i)

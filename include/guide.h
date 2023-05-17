@@ -126,8 +126,9 @@ uint64_t DefaultChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
 }
 
 uint64_t DefaultChooser::chooseUnimportant() {
-  std::uniform_int_distribution<uint64_t> Dist(std::numeric_limits<uint64_t>::min(),
-                                           std::numeric_limits<uint64_t>::max());
+  std::uniform_int_distribution<uint64_t> Dist(
+      std::numeric_limits<uint64_t>::min(),
+      std::numeric_limits<uint64_t>::max());
   return Dist(*this->G.Rand);
 }
 
@@ -302,7 +303,7 @@ BFSChooser::~BFSChooser() {
 }
 
 uint64_t BFSChooser::chooseInternal(const uint64_t Choices,
-                                std::function<uint64_t()> randomChoice) {
+                                    std::function<uint64_t()> randomChoice) {
   assert(G.Choosing);
   if (Verbose) {
     std::cout << "choose(" << Choices << ")\n";
@@ -389,8 +390,9 @@ uint64_t BFSChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
 }
 
 uint64_t BFSChooser::chooseUnimportant() {
-  std::uniform_int_distribution<uint64_t> Dist(std::numeric_limits<uint64_t>::min(),
-                                           std::numeric_limits<uint64_t>::max());
+  std::uniform_int_distribution<uint64_t> Dist(
+      std::numeric_limits<uint64_t>::min(),
+      std::numeric_limits<uint64_t>::max());
   return Dist(*this->G.Rand);
 }
 
@@ -544,14 +546,15 @@ public:
     if (explore) {
       if (current->Weights.size() > 0) {
         std::discrete_distribution<uint64_t> Dist(current->Weights.begin(),
-                                              current->Weights.end());
+                                                  current->Weights.end());
         while (true) {
           result = Dist(*this->G.Rand);
           if (current->Children[result] == nullptr)
             break;
         }
       } else {
-        std::uniform_int_distribution<uint64_t> Dist(0, current->BranchFactor - 1);
+        std::uniform_int_distribution<uint64_t> Dist(0,
+                                                     current->BranchFactor - 1);
         while (true) {
           result = Dist(*this->G.Rand);
           if (current->Children[result] == nullptr)
@@ -608,11 +611,13 @@ std::unique_ptr<Chooser> WeightedSamplerGuide::makeChooser() {
   return std::make_unique<WeightedSamplerChooser>(*this);
 }
 
-uint64_t WeightedSamplerChooser::chooseWeighted(const std::vector<double> &Probs) {
+uint64_t
+WeightedSamplerChooser::chooseWeighted(const std::vector<double> &Probs) {
   return this->choose(Probs.size(), Probs);
 }
 
-uint64_t WeightedSamplerChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
+uint64_t
+WeightedSamplerChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   uint64_t Total = 0;
   for (auto I : Probs)
     Total += I;
@@ -623,8 +628,9 @@ uint64_t WeightedSamplerChooser::chooseWeighted(const std::vector<uint64_t> &Pro
 }
 
 uint64_t WeightedSamplerChooser::chooseUnimportant() {
-  std::uniform_int_distribution<uint64_t> Dist(std::numeric_limits<uint64_t>::min(),
-                                           std::numeric_limits<uint64_t>::max());
+  std::uniform_int_distribution<uint64_t> Dist(
+      std::numeric_limits<uint64_t>::min(),
+      std::numeric_limits<uint64_t>::max());
   return Dist(*this->G.Rand);
 }
 
@@ -644,7 +650,9 @@ template <typename T> class SaverGuide : public Guide {
   const size_t MAX_LINE_LENGTH = 70;
 
 public:
-  inline SaverGuide(uint64_t Seed) { DG = std::make_unique<DefaultGuide>(Seed); }
+  inline SaverGuide(uint64_t Seed) {
+    DG = std::make_unique<DefaultGuide>(Seed);
+  }
   inline SaverGuide() { DG = std::make_unique<DefaultGuide>(); }
   inline ~SaverGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override {
@@ -725,7 +733,8 @@ template <typename T> void SaverChooser<T>::endScope() {
 
 // NB the vector referenced by the return value here's lifetime will
 // end when the chooser's lifetime ends
-template <typename T> const std::vector<uint64_t> &SaverChooser<T>::getChoices() {
+template <typename T>
+const std::vector<uint64_t> &SaverChooser<T>::getChoices() {
   return Saved;
 }
 
