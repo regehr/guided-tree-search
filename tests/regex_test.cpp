@@ -7,7 +7,7 @@
 
 #include "regex.h"
 
-const long N = 1 * 1000 * 1000;
+const long N = 250 * 1000;
 const long Depth = 6;
 
 using namespace std;

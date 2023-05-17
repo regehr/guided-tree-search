@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
 
 project(Guide)
 
@@ -42,3 +42,5 @@ target_link_libraries(runtests PRIVATE Catch2::Catch2WithMain)
 
 enable_testing()
 add_test(NAME main_test COMMAND runtests)
+add_test(NAME saver_test COMMAND saver_test)
+add_test(NAME regex_test COMMAND regex_test)
