@@ -92,8 +92,8 @@ public:
   inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
-  inline void beginScope() override {};
-  inline void endScope() override {};
+  inline void beginScope() override{};
+  inline void endScope() override{};
 };
 
 class DefaultGuide : public Guide {
@@ -186,8 +186,8 @@ public:
   inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
-  inline void beginScope() override {};
-  inline void endScope() override {};
+  inline void beginScope() override{};
+  inline void endScope() override{};
 };
 
 BFSGuide::BFSGuide(long Seed) {
@@ -602,8 +602,8 @@ public:
   inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
-  inline void beginScope() override {};
-  inline void endScope() override {};
+  inline void beginScope() override{};
+  inline void endScope() override{};
 };
 
 std::unique_ptr<Chooser> WeightedSamplerGuide::makeChooser() {
@@ -656,7 +656,7 @@ public:
     return DG->name() + " (wrapped by Saver)";
   }
 };
-  
+
 template <typename T> class SaverChooser : public Chooser {
 
   enum kind { START = 777, END, NUM, NONE };
@@ -664,7 +664,7 @@ template <typename T> class SaverChooser : public Chooser {
     kind k;
     long v;
   };
-  
+
   SaverGuide<T> &G;
   std::unique_ptr<Chooser> C;
   std::vector<rec> Saved;
@@ -685,7 +685,7 @@ public:
 
 template <typename T> long SaverChooser<T>::choose(long Choices) {
   auto X = C->choose(Choices);
-  rec r { NUM, X };
+  rec r{NUM, X};
   Saved.push_back(r);
   return X;
 }
@@ -693,7 +693,7 @@ template <typename T> long SaverChooser<T>::choose(long Choices) {
 template <typename T>
 long SaverChooser<T>::chooseWeighted(const std::vector<double> &Probs) {
   auto X = C->chooseWeighted(Probs);
-  rec r { NUM, X };
+  rec r{NUM, X};
   Saved.push_back(r);
   return X;
 }
@@ -701,26 +701,26 @@ long SaverChooser<T>::chooseWeighted(const std::vector<double> &Probs) {
 template <typename T>
 long SaverChooser<T>::chooseWeighted(const std::vector<long> &Probs) {
   auto X = C->chooseWeighted(Probs);
-  rec r { NUM, X };
+  rec r{NUM, X};
   Saved.push_back(r);
   return X;
 }
 
 template <typename T> long SaverChooser<T>::chooseUnimportant() {
   auto X = C->chooseUnimportant();
-  rec r { NUM, X };
+  rec r{NUM, X};
   Saved.push_back(r);
   return X;
 }
 
 template <typename T> void SaverChooser<T>::beginScope() {
-  rec r { START, 0 };
+  rec r{START, 0};
   Saved.push_back(r);
   C->beginScope();
 }
 
 template <typename T> void SaverChooser<T>::endScope() {
-  rec r { END, 0 };
+  rec r{END, 0};
   Saved.push_back(r);
   C->endScope();
 }
@@ -861,8 +861,8 @@ public:
   inline long chooseWeighted(const std::vector<double> &) override;
   inline long chooseWeighted(const std::vector<long> &) override;
   inline long chooseUnimportant() override;
-  inline void beginScope() override {};
-  inline void endScope() override {};
+  inline void beginScope() override{};
+  inline void endScope() override{};
 };
 
 class FileGuide : public Guide {
@@ -900,7 +900,7 @@ FileGuide::FileGuide(std::string FileName) {
         if (line[0] != ' ' || line[1] != '*' || line[2] != ' ') {
           std::cerr << "FATAL ERROR: Expected every line of choices in '"
                     << FileName << "' to start with ' * '\n\n";
-	  exit(-1);
+          exit(-1);
         }
         long val = 0;
         kind k = NONE;
@@ -931,7 +931,7 @@ FileGuide::FileGuide(std::string FileName) {
           } else {
             std::cerr << "FATAL ERROR: Illegal character '" << c
                       << "' in choice string in '" << FileName << "'\n\n";
-	    exit(-1);
+            exit(-1);
           }
         }
       }
@@ -961,7 +961,7 @@ FileGuide::FileGuide(std::string FileName) {
  *   not the same value every time (since this could cause a rejection
  *   sampling loop to run forever
  */
- 
+
 long FileChooser::choose(long Choices) {
   long val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
   return val % Choices;
