@@ -549,19 +549,19 @@ public:
                                               current->Weights.end());
         while (true) {
           result = Dist(*this->G.Rand);
-          if (current->Children.at(result) == nullptr)
+          if (current->Children[result] == nullptr)
             break;
         }
       } else {
         std::uniform_int_distribution<long> Dist(0, current->BranchFactor - 1);
         while (true) {
           result = Dist(*this->G.Rand);
-          if (current->Children.at(result) == nullptr)
+          if (current->Children[result] == nullptr)
             break;
         }
       }
 
-      next_node = (current->Children.at(result) =
+      next_node = (current->Children[result] =
                        std::make_unique<WeightedSamplerGuide::Node>())
                       .get();
 
@@ -582,9 +582,9 @@ public:
 
       auto i = Dist(*this->G.Rand);
 
-      result = results.at(i);
+      result = results[i];
 
-      next_node = current->Children.at(result).get();
+      next_node = current->Children[result].get();
     }
 
     assert(next_node != nullptr);
