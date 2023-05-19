@@ -739,9 +739,9 @@ const std::vector<uint64_t> &SaverChooser<T>::getChoices() {
 
 template <typename T> const std::string SaverChooser<T>::formatChoices() {
   std::string s;
-  s += "/*\n * FORMATTED CHOICES:\n";
+  s += "// FORMATTED CHOICES:\n";
   std::vector<uint64_t>::size_type pos = 0;
-  std::string line = " * ";
+  std::string line = "// ";
   while (pos < Saved.size()) {
     std::string item;
     switch (Saved.at(pos).k) {
@@ -760,14 +760,13 @@ template <typename T> const std::string SaverChooser<T>::formatChoices() {
     item += ",";
     if (line.length() + item.length() >= G.MAX_LINE_LENGTH) {
       s += line + "\n";
-      line = " * " + item;
+      line = "// " + item;
     } else {
       line += item;
     }
     ++pos;
   }
-  s += line + "\n";
-  s += " */\n";
+  s += line + "\n\n";
   return s;
 }
 
@@ -877,8 +876,8 @@ public:
 class FileGuide : public Guide {
   friend FileChooser;
   std::vector<uint64_t> Choices;
-  const std::string StartMarker = "* FORMATTED CHOICES:";
-  const std::string EndMarker = "*/";
+  const std::string StartMarker = "// FORMATTED CHOICES:";
+  const std::string EndMarker = "";
   enum kind { START = 777, END, NUM, NONE };
 
 public:
@@ -903,12 +902,12 @@ FileGuide::FileGuide(std::string FileName) {
   bool inData = false;
   while (std::getline(file, line)) {
     if (inData) {
-      if (line.find(EndMarker) != std::string::npos) {
+      if (line == EndMarker) {
         break;
       } else {
-        if (line[0] != ' ' || line[1] != '*' || line[2] != ' ') {
+        if (line[0] != '/' || line[1] != '/' || line[2] != ' ') {
           std::cerr << "FATAL ERROR: Expected every line of choices in '"
-                    << FileName << "' to start with ' * '\n\n";
+                    << FileName << "' to start with '// '\n\n";
           exit(-1);
         }
         uint64_t val = 0;
