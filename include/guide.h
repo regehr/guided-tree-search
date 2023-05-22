@@ -807,18 +807,19 @@ class FileGuide : public Guide {
 
 public:
   inline FileGuide(uint64_t Seed) = delete;
-  inline FileGuide() = delete;
-  inline FileGuide(std::string);
+  inline FileGuide() {}
   inline ~FileGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override {
     return std::make_unique<FileChooser>(*this);
   }
   inline const std::string name() override { return "file"; }
+  inline bool parseChoices(std::istream &file);
+  inline bool parseChoices(std::string &fileName);
 };
 
 enum kind { START = 777, END, NUM, NONE };
 
-inline bool parseChoices(std::istream &file, std::vector<uint64_t> &C) {
+inline bool FileGuide::parseChoices(std::istream &file) {
   std::string line;
   bool inData = false;
   while (std::getline(file, line)) {
@@ -838,7 +839,7 @@ inline bool parseChoices(std::istream &file, std::vector<uint64_t> &C) {
           if (c == ',') {
             switch (k) {
             case NUM:
-              C.push_back(val);
+              Choices.push_back(val);
               val = 0;
               break;
             case START:
@@ -872,21 +873,23 @@ inline bool parseChoices(std::istream &file, std::vector<uint64_t> &C) {
   return true;
 }
 
-FileGuide::FileGuide(std::string FileName) {
+bool FileGuide::parseChoices(std::string &FileName) {
   std::ifstream file(FileName);
   if (!file.is_open()) {
     std::cerr << "FATAL ERROR: Cannot open choice file '" << FileName
               << "'\n\n";
-    exit(-1);
+    return false;
   }
-  if (!parseChoices(file, Choices))
-    exit(-1);
+  auto res = parseChoices(file);
   file.close();
+  if (!res)
+    return false;
   if (Choices.size() == 0) {
     std::cerr << "FATAL ERROR: The file '" << FileName
               << "' contained no choices\n\n";
-    exit(-1);
+    return false;
   }
+  return true;
 }
 
 /*

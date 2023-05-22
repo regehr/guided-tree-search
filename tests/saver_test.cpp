@@ -49,7 +49,8 @@ int use_choices() {
   int pass = 0;
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
-    FileGuide G(FNs.at(i));
+    FileGuide G;
+    G.parseChoices(FNs.at(i));
     auto C = G.makeChooser();
     assert(C);
     auto Str = gen(*C, Depth);
