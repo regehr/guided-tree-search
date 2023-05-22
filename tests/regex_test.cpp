@@ -8,7 +8,6 @@
 #include "gen_regex.h"
 
 const long N = 250 * 1000;
-const long Depth = 6;
 
 const bool RUN_GREP = false;
 
@@ -23,7 +22,7 @@ void go(Guide &G) {
       cout << "*** tree fully explored ***\n";
       break;
     }
-    auto Str = gen(*C, Depth);
+    auto Str = gen(*C, RegexDepth);
     Results.emplace(Str);
     if (RUN_GREP) {
       auto Ret =
@@ -38,8 +37,8 @@ void go(Guide &G) {
 int main() {
   cout << "for " << N << " tests:\n";
   {
-    auto G1 = new DefaultGuide;
-    SaverGuide G2(G1);
+    DefaultGuide G1;
+    SaverGuide G2(&G1);
     go(G2);
   }
   {

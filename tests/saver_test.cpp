@@ -7,8 +7,8 @@
 
 #include "gen_regex.h"
 
-const long N = 1000;
-const long MaxDepth = 50;
+const long N = 100;
+const long MaxDepth = 10;
 const bool PRINT = true;
 const bool KEEP = true;
 

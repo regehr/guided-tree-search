@@ -680,6 +680,9 @@ public:
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
   inline const std::string formatChoices();
+  inline std::vector<rec> &getChoices() {
+    return Saved;
+  }
   inline void beginScope() override;
   inline void endScope() override;
 };
@@ -809,11 +812,18 @@ public:
   inline bool parseChoices(std::istream &file);
   inline bool parseChoices(std::string &fileName);
   inline std::vector<uint64_t> &getChoices() { return Choices; }
+  inline void replaceChoices(const std::vector<uint64_t> &C);
 };
 
 enum kind { START = 777, END, NUM, NONE };
 
-inline bool FileGuide::parseChoices(std::istream &file) {
+void FileGuide::replaceChoices(const std::vector<uint64_t> &C) {
+  Choices.clear();
+  for (auto x : C)
+    Choices.push_back(x);
+}
+
+bool FileGuide::parseChoices(std::istream &file) {
   std::string line;
   bool inData = false;
   while (std::getline(file, line)) {
