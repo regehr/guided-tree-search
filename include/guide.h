@@ -773,6 +773,157 @@ template <typename T> const std::string SaverChooser<T>::formatChoices() {
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
+ * FileGuide: loads a file of choices; every chooser that it returns
+ * does exactly the same thing: makes the choices specified in the
+ * file. this guide tries to reject syntactically invalid saved
+ * choices, but also it tries to accept and deal with running out of
+ * choices (it starts returning arbitrary values) and also
+ * out-of-range choices (it reduces them to be in range)
+ */
+
+class FileGuide;
+
+class FileChooser : public Chooser {
+  FileGuide &G;
+  std::vector<uint64_t>::size_type Pos = 0;
+  uint64_t Counter = 0;
+
+public:
+  inline FileChooser(FileGuide &_G) : G(_G) {}
+  inline ~FileChooser(){};
+  inline uint64_t choose(uint64_t Choices) override;
+  inline bool flip() override { return choose(2); }
+  inline uint64_t chooseWeighted(const std::vector<double> &) override;
+  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
+  inline uint64_t chooseUnimportant() override;
+  inline void beginScope() override{};
+  inline void endScope() override{};
+};
+
+static const std::string StartMarker{"// FORMATTED CHOICES:"};
+static const std::string EndMarker{""};
+
+class FileGuide : public Guide {
+  friend FileChooser;
+  std::vector<uint64_t> Choices;
+
+public:
+  inline FileGuide(uint64_t Seed) = delete;
+  inline FileGuide() = delete;
+  inline FileGuide(std::string);
+  inline ~FileGuide() {}
+  inline std::unique_ptr<Chooser> makeChooser() override {
+    return std::make_unique<FileChooser>(*this);
+  }
+  inline const std::string name() override { return "file"; }
+};
+
+enum kind { START = 777, END, NUM, NONE };
+
+inline void parseChoices(std::istream &file, std::vector<uint64_t> &C) {
+  std::string line;
+  bool inData = false;
+  while (std::getline(file, line)) {
+    if (inData) {
+      if (line == EndMarker) {
+        break;
+      } else {
+        if (line[0] != '/' || line[1] != '/' || line[2] != ' ') {
+          std::cerr << "FATAL ERROR: Expected every line of choices to start with '// '\n\n";
+          exit(-1);
+        }
+        uint64_t val = 0;
+        kind k = NONE;
+        for (std::string::size_type pos = 3; pos < line.length(); ++pos) {
+          auto c = line[pos];
+          if (c == ',') {
+            switch (k) {
+            case NUM:
+              C.push_back(val);
+              val = 0;
+              break;
+            case START:
+              break;
+            case END:
+              break;
+            default:
+              assert(false);
+            }
+            k = NONE;
+          } else if (c >= '0' && c <= '9') {
+            val *= 10;
+            val += c - '0';
+            k = NUM;
+          } else if (c == '{') {
+            k = START;
+          } else if (c == '}') {
+            k = END;
+          } else {
+            std::cerr << "FATAL ERROR: Illegal character '" << c
+                      << "' in choice string\n\n";
+            exit(-1);
+          }
+        }
+      }
+    } else {
+      if (line.find(StartMarker) != std::string::npos) {
+        inData = true;
+      }
+    }
+  }
+}
+  
+FileGuide::FileGuide(std::string FileName) {
+  std::ifstream file(FileName);
+  if (!file.is_open()) {
+    std::cerr << "FATAL ERROR: Cannot open choice file '" << FileName
+              << "'\n\n";
+    exit(-1);
+  }
+  parseChoices(file, Choices);
+  file.close();
+  if (Choices.size() == 0) {
+    std::cerr << "FATAL ERROR: The file '" << FileName
+              << "' contained no choices\n\n";
+    exit(-1);
+  }
+}
+
+/*
+ * each of the following functions should deal gracefully with both of
+ * these conditions:
+ *
+ * - the choice from the file is out-of-bounds with respect to the
+ *   requested range of values
+ *
+ * - we've run out of values from the file to return; in this case we
+ *   additionally want the returned value to be deterministic and also
+ *   not the same value every time (since this could cause a rejection
+ *   sampling loop to run forever
+ */
+
+uint64_t FileChooser::choose(uint64_t Choices) {
+  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+  return val % Choices;
+}
+
+uint64_t FileChooser::chooseWeighted(const std::vector<double> &Probs) {
+  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+  return val % Probs.size();
+}
+
+uint64_t FileChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
+  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+  return val % Probs.size();
+}
+
+uint64_t FileChooser::chooseUnimportant() {
+  return (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*
  * RRGuide: creates choosers from multiple guides in round-robin
  * fashion
  */
@@ -846,163 +997,9 @@ std::unique_ptr<Chooser> RRGuide::makeChooser() {
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
- * FileGuide: loads a file of choices; every chooser that it returns
- * does exactly the same thing: makes the choices specified in the
- * file. this guide tries to reject syntactically invalid saved
- * choices, but also it tries to accept and deal with running out of
- * choices (it starts returning arbitrary values) and also
- * out-of-range choices (it reduces them to be in range)
- */
-
-class FileGuide;
-
-class FileChooser : public Chooser {
-  FileGuide &G;
-  std::vector<uint64_t>::size_type Pos = 0;
-  uint64_t Counter = 0;
-
-public:
-  inline FileChooser(FileGuide &_G) : G(_G) {}
-  inline ~FileChooser(){};
-  inline uint64_t choose(uint64_t Choices) override;
-  inline bool flip() override { return choose(2); }
-  inline uint64_t chooseWeighted(const std::vector<double> &) override;
-  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
-  inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{};
-  inline void endScope() override{};
-};
-
-class FileGuide : public Guide {
-  friend FileChooser;
-  std::vector<uint64_t> Choices;
-  const std::string StartMarker = "// FORMATTED CHOICES:";
-  const std::string EndMarker = "";
-  enum kind { START = 777, END, NUM, NONE };
-
-public:
-  inline FileGuide(uint64_t Seed) = delete;
-  inline FileGuide() = delete;
-  inline FileGuide(std::string);
-  inline ~FileGuide() {}
-  inline std::unique_ptr<Chooser> makeChooser() override {
-    return std::make_unique<FileChooser>(*this);
-  }
-  inline const std::string name() override { return "file"; }
-};
-
-FileGuide::FileGuide(std::string FileName) {
-  std::ifstream file(FileName);
-  if (!file.is_open()) {
-    std::cerr << "FATAL ERROR: Cannot open choice file '" << FileName
-              << "'\n\n";
-    exit(-1);
-  }
-  std::string line;
-  bool inData = false;
-  while (std::getline(file, line)) {
-    if (inData) {
-      if (line == EndMarker) {
-        break;
-      } else {
-        if (line[0] != '/' || line[1] != '/' || line[2] != ' ') {
-          std::cerr << "FATAL ERROR: Expected every line of choices in '"
-                    << FileName << "' to start with '// '\n\n";
-          exit(-1);
-        }
-        uint64_t val = 0;
-        kind k = NONE;
-        for (std::string::size_type pos = 3; pos < line.length(); ++pos) {
-          auto c = line[pos];
-          if (c == ',') {
-            switch (k) {
-            case NUM:
-              Choices.push_back(val);
-              val = 0;
-              break;
-            case START:
-              break;
-            case END:
-              break;
-            default:
-              assert(false);
-            }
-            k = NONE;
-          } else if (c >= '0' && c <= '9') {
-            val *= 10;
-            val += c - '0';
-            k = NUM;
-          } else if (c == '{') {
-            k = START;
-          } else if (c == '}') {
-            k = END;
-          } else {
-            std::cerr << "FATAL ERROR: Illegal character '" << c
-                      << "' in choice string in '" << FileName << "'\n\n";
-            exit(-1);
-          }
-        }
-      }
-    } else {
-      if (line.find(StartMarker) != std::string::npos) {
-        inData = true;
-      }
-    }
-  }
-  file.close();
-  if (Choices.size() == 0) {
-    std::cerr << "FATAL ERROR: The file '" << FileName
-              << "' contained no choices\n\n";
-    exit(-1);
-  }
-}
-
-/*
- * each of the following functions should deal gracefully with both of
- * these conditions:
- *
- * - the choice from the file is out-of-bounds with respect to the
- *   requested range of values
- *
- * - we've run out of values from the file to return; in this case we
- *   additionally want the returned value to be deterministic and also
- *   not the same value every time (since this could cause a rejection
- *   sampling loop to run forever
- */
-
-uint64_t FileChooser::choose(uint64_t Choices) {
-  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
-  return val % Choices;
-}
-
-uint64_t FileChooser::chooseWeighted(const std::vector<double> &Probs) {
-  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
-  return val % Probs.size();
-}
-
-uint64_t FileChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
-  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
-  return val % Probs.size();
-}
-
-uint64_t FileChooser::chooseUnimportant() {
-  return (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-/*
  * remote guide: ephemeral in-process guide that talks to a different
  * guide living in a server process; use this for generators that can
  * only traverse the decision tree once each time they run
- */
-
-// TODO
-
-////////////////////////////////////////////////////////////////////////////////
-
-/*
- * coverage guide: takes feedback from afl++
  */
 
 // TODO

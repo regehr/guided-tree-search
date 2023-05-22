@@ -9,6 +9,8 @@
 
 const long N = 1000;
 const long MaxDepth = 50;
+const bool PRINT = true;
+const bool KEEP = true;
 
 using namespace std;
 using namespace tree_guide;
@@ -34,6 +36,11 @@ void save_choices() {
     out << Str << "\n\n";
     out << C2->formatChoices();
     out << "\n";
+    if (PRINT) {
+      cout << Str << "\n\n";
+      cout << C2->formatChoices();
+      cout << "\n";
+    }
     out.close();
   }
 }
@@ -48,7 +55,8 @@ int use_choices() {
     auto Str = gen(*C, Depth);
     assert(Str == Generated.at(i));
     ++pass;
-    remove(FNs.at(i).c_str());
+    if (!KEEP)
+      remove(FNs.at(i).c_str());
   }
   return pass;
 }

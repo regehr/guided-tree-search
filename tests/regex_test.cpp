@@ -10,6 +10,8 @@
 const long N = 250 * 1000;
 const long Depth = 6;
 
+const bool RUN_GREP = false;
+
 using namespace std;
 using namespace tree_guide;
 
@@ -23,7 +25,7 @@ void go(Guide &G) {
     }
     auto Str = gen(*C, Depth);
     Results.emplace(Str);
-    if (false) {
+    if (RUN_GREP) {
       auto Ret =
           system(("grep '" + Str + "' < ../regex.cpp >/dev/null").c_str());
       if (Ret != 0 && Ret != 256)
