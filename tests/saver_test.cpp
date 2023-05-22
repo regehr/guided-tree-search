@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "regex.h"
+#include "gen_regex.h"
 
 const long N = 1000;
 const long MaxDepth = 50;
@@ -19,8 +19,8 @@ vector<string> FNs;
 vector<string> Generated;
 
 void save_choices() {
-  std::unique_ptr<Guide> G1 = std::make_unique<DefaultGuide>();
-  SaverGuide G2(std::move(G1));
+  DefaultGuide G1;
+  SaverGuide G2(&G1);
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
     auto C1 = G2.makeChooser();

@@ -14,13 +14,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address,undefined -D_DEBUG -D_GLIBCXX_D
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 include_directories(include)
-add_library(regex STATIC tests/regex.cpp)
+add_library(gen_regex STATIC tests/gen_regex.cpp)
 
 add_executable(regex_test tests/regex_test.cpp)
-target_link_libraries(regex_test regex)
+target_link_libraries(regex_test gen_regex)
 
 add_executable(saver_test tests/saver_test.cpp)
-target_link_libraries(saver_test regex)
+target_link_libraries(saver_test gen_regex)
 
 if (AFLPLUSPLUS_DIR)
   add_library(aflplusplus-mutator SHARED aflplusplus/aflplusplus-mutator.cpp)

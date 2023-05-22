@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "regex.h"
+#include "gen_regex.h"
 
 const long N = 250 * 1000;
 const long Depth = 6;
@@ -38,8 +38,8 @@ void go(Guide &G) {
 int main() {
   cout << "for " << N << " tests:\n";
   {
-    std::unique_ptr<Guide> G1 = std::make_unique<DefaultGuide>();
-    SaverGuide G2(std::move(G1));
+    auto G1 = new DefaultGuide;
+    SaverGuide G2(G1);
     go(G2);
   }
   {

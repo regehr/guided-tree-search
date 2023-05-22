@@ -646,13 +646,13 @@ class SaverChooser;
 
 class SaverGuide : public Guide {
   friend SaverChooser;
-  std::unique_ptr<Guide> SubG;
+  Guide *SubG;
   const size_t MAX_LINE_LENGTH = 70;
 
 public:
   inline SaverGuide(uint64_t Seed) = delete;
   inline SaverGuide() = delete;
-  inline SaverGuide(std::unique_ptr<Guide> _SubG) : SubG(std::move(_SubG)) {}
+  inline SaverGuide(Guide *_SubG) : SubG(_SubG) {}
   inline ~SaverGuide() {}
   inline const std::string name() override {
     return SubG->name() + " (wrapped by Saver)";
@@ -808,6 +808,7 @@ public:
   inline const std::string name() override { return "file"; }
   inline bool parseChoices(std::istream &file);
   inline bool parseChoices(std::string &fileName);
+  inline std::vector<uint64_t> &getChoices() { return Choices; }
 };
 
 enum kind { START = 777, END, NUM, NONE };
