@@ -818,7 +818,7 @@ public:
 
 enum kind { START = 777, END, NUM, NONE };
 
-inline void parseChoices(std::istream &file, std::vector<uint64_t> &C) {
+inline bool parseChoices(std::istream &file, std::vector<uint64_t> &C) {
   std::string line;
   bool inData = false;
   while (std::getline(file, line)) {
@@ -829,7 +829,7 @@ inline void parseChoices(std::istream &file, std::vector<uint64_t> &C) {
         if (line[0] != '/' || line[1] != '/' || line[2] != ' ') {
           std::cerr << "FATAL ERROR: Expected every line of choices to start "
                        "with '// '\n\n";
-          exit(-1);
+          return false;
         }
         uint64_t val = 0;
         kind k = NONE;
@@ -860,16 +860,16 @@ inline void parseChoices(std::istream &file, std::vector<uint64_t> &C) {
           } else {
             std::cerr << "FATAL ERROR: Illegal character '" << c
                       << "' in choice string\n\n";
-            exit(-1);
+            return false;
           }
         }
       }
     } else {
-      if (line.find(StartMarker) != std::string::npos) {
+      if (line.find(StartMarker) != std::string::npos)
         inData = true;
-      }
     }
   }
+  return true;
 }
 
 FileGuide::FileGuide(std::string FileName) {
@@ -879,7 +879,8 @@ FileGuide::FileGuide(std::string FileName) {
               << "'\n\n";
     exit(-1);
   }
-  parseChoices(file, Choices);
+  if (!parseChoices(file, Choices))
+    exit(-1);
   file.close();
   if (Choices.size() == 0) {
     std::cerr << "FATAL ERROR: The file '" << FileName
