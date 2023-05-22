@@ -19,12 +19,13 @@ vector<string> FNs;
 vector<string> Generated;
 
 void save_choices() {
-  SaverGuide<DefaultGuide> G;
+  std::unique_ptr<Guide> G1 = std::make_unique<DefaultGuide>();
+  SaverGuide G2(std::move(G1));
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
-    auto C1 = G.makeChooser();
+    auto C1 = G2.makeChooser();
     assert(C1);
-    auto C2 = static_cast<SaverChooser<DefaultGuide> *>(C1.get());
+    auto C2 = static_cast<SaverChooser *>(C1.get());
     assert(C2);
     auto Str = gen(*C2, Depth);
     ofstream out;

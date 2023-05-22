@@ -38,8 +38,9 @@ void go(Guide &G) {
 int main() {
   cout << "for " << N << " tests:\n";
   {
-    SaverGuide<DefaultGuide> G;
-    go(G);
+    std::unique_ptr<Guide> G1 = std::make_unique<DefaultGuide>();
+    SaverGuide G2(std::move(G1));
+    go(G2);
   }
   {
     BFSGuide G;
@@ -50,7 +51,7 @@ int main() {
     go(G);
   }
   {
-    auto G1 = new SaverGuide<DefaultGuide>();
+    auto G1 = new DefaultGuide();
     auto G2 = new BFSGuide();
     auto G3 = new WeightedSamplerGuide();
     RRGuide G4({G1, G2, G3});

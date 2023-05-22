@@ -642,100 +642,93 @@ uint64_t WeightedSamplerChooser::chooseUnimportant() {
  * to retreive them
  */
 
-template <typename T> class SaverChooser;
+class SaverChooser;
 
-template <typename T> class SaverGuide : public Guide {
-  friend SaverChooser<T>;
-  std::unique_ptr<T> G;
+class SaverGuide : public Guide {
+  friend SaverChooser;
+  std::unique_ptr<Guide> SubG;
   const size_t MAX_LINE_LENGTH = 70;
 
 public:
-  inline SaverGuide(uint64_t Seed) { G = std::make_unique<T>(Seed); }
-  inline SaverGuide() { G = std::make_unique<T>(); }
+  inline SaverGuide(uint64_t Seed) = delete;
+  inline SaverGuide() = delete;
+  inline SaverGuide(std::unique_ptr<Guide> _SubG) : SubG(std::move(_SubG)) {}
   inline ~SaverGuide() {}
-  inline std::unique_ptr<Chooser> makeChooser() override {
-    return std::make_unique<SaverChooser<T>>(*this);
-  }
   inline const std::string name() override {
-    return G->name() + " (wrapped by Saver)";
+    return SubG->name() + " (wrapped by Saver)";
   }
+  inline std::unique_ptr<Chooser> makeChooser() override;
 };
 
-template <typename T> class SaverChooser : public Chooser {
+class SaverChooser : public Chooser {
   enum kind { START = 777, END, NUM, NONE };
   struct rec {
     kind k;
     uint64_t v;
   };
 
-  SaverGuide<T> &G;
+  SaverGuide &G;
   std::unique_ptr<Chooser> C;
   std::vector<rec> Saved;
 
 public:
-  inline SaverChooser(SaverGuide<T> &_G) : G(_G) { C = G.G->makeChooser(); }
+  inline SaverChooser(SaverGuide &_G) : G(_G) { C = G.SubG->makeChooser(); }
   inline ~SaverChooser(){};
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline const std::vector<uint64_t> &getChoices();
   inline const std::string formatChoices();
   inline void beginScope() override;
   inline void endScope() override;
 };
 
-template <typename T> uint64_t SaverChooser<T>::choose(uint64_t Choices) {
+std::unique_ptr<Chooser> SaverGuide::makeChooser() {
+  return std::make_unique<SaverChooser>(*this);
+}
+
+uint64_t SaverChooser::choose(uint64_t Choices) {
   auto X = C->choose(Choices);
   rec r{NUM, X};
   Saved.push_back(r);
   return X;
 }
 
-template <typename T>
-uint64_t SaverChooser<T>::chooseWeighted(const std::vector<double> &Probs) {
+uint64_t SaverChooser::chooseWeighted(const std::vector<double> &Probs) {
   auto X = C->chooseWeighted(Probs);
   rec r{NUM, X};
   Saved.push_back(r);
   return X;
 }
 
-template <typename T>
-uint64_t SaverChooser<T>::chooseWeighted(const std::vector<uint64_t> &Probs) {
+uint64_t SaverChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   auto X = C->chooseWeighted(Probs);
   rec r{NUM, X};
   Saved.push_back(r);
   return X;
 }
 
-template <typename T> uint64_t SaverChooser<T>::chooseUnimportant() {
+uint64_t SaverChooser::chooseUnimportant() {
   auto X = C->chooseUnimportant();
   rec r{NUM, X};
   Saved.push_back(r);
   return X;
 }
 
-template <typename T> void SaverChooser<T>::beginScope() {
+void SaverChooser::beginScope() {
   rec r{START, 0};
   Saved.push_back(r);
   C->beginScope();
 }
 
-template <typename T> void SaverChooser<T>::endScope() {
+void SaverChooser::endScope() {
   rec r{END, 0};
   Saved.push_back(r);
   C->endScope();
 }
 
-// NB the lifetime of the vector referenced by the return value will
-// end when the chooser's lifetime ends
-template <typename T>
-const std::vector<uint64_t> &SaverChooser<T>::getChoices() {
-  return Saved;
-}
-
-template <typename T> const std::string SaverChooser<T>::formatChoices() {
+const std::string SaverChooser::formatChoices() {
   std::string s;
   s += "// FORMATTED CHOICES:\n";
   std::vector<uint64_t>::size_type pos = 0;
