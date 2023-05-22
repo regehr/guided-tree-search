@@ -11,6 +11,54 @@ extern "C" {
 
 #include "guide.h"
 
+/////////////////////////////////////////////////////////////////////////////////////
+// TODO
+// - use a better PRNG
+
+static void seedit(long seed) {
+  srand(seed);
+}
+
+static void change_one(std::vector<uint64_t> &C) {
+  long x = rand() % C.size();
+  long v = rand();
+  // std::cerr << "going with " <<v << " at index " << x << "\n";
+  C.at(x) = v;
+}
+
+static void remove(std::vector<uint64_t> &C) {
+  auto s = C.size();
+  auto start_idx = rand() % s;
+  auto end_idx = start_idx + 1 + rand() % 10;
+  if (end_idx >= s)
+    end_idx = s - 1;
+  C.erase(C.begin() + start_idx, C.begin() + end_idx);
+}
+
+static void insert(std::vector<uint64_t> &C) {
+  auto s = C.size();
+  auto insert_idx = rand() % s;
+  auto to_insert = 1 + rand() % 10;
+  for (auto i = 0; i < to_insert; ++i)
+    C.insert(C.begin() + insert_idx, rand());
+}
+
+static void mutate_choices(std::vector<uint64_t> &C) {
+  switch (rand() % 3) {
+  case 0:
+    change_one(C);
+    break;
+  case 1:
+    remove(C);
+    break;
+  case 2:
+    insert(C);
+    break;
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+
 struct my_mutator {
   afl_state_t *afl;
   size_t       trim_size_current;
@@ -20,7 +68,7 @@ struct my_mutator {
 };
 
 extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
-  srand(seed);
+  seedit(seed);
 
   my_mutator *data = (my_mutator *)calloc(1, sizeof(my_mutator));
   if (!data) {
@@ -45,12 +93,6 @@ extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
 
   data->afl = afl;
   return data;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-
-static void mutate_choices(std::vector<uint64_t> &C) {
-  C.at(rand() % C.size()) = rand();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
