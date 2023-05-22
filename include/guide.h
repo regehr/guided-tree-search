@@ -650,9 +650,7 @@ template <typename T> class SaverGuide : public Guide {
   const size_t MAX_LINE_LENGTH = 70;
 
 public:
-  inline SaverGuide(uint64_t Seed) {
-    G = std::make_unique<T>(Seed);
-  }
+  inline SaverGuide(uint64_t Seed) { G = std::make_unique<T>(Seed); }
   inline SaverGuide() { G = std::make_unique<T>(); }
   inline ~SaverGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override {
@@ -829,7 +827,8 @@ inline void parseChoices(std::istream &file, std::vector<uint64_t> &C) {
         break;
       } else {
         if (line[0] != '/' || line[1] != '/' || line[2] != ' ') {
-          std::cerr << "FATAL ERROR: Expected every line of choices to start with '// '\n\n";
+          std::cerr << "FATAL ERROR: Expected every line of choices to start "
+                       "with '// '\n\n";
           exit(-1);
         }
         uint64_t val = 0;
@@ -872,7 +871,7 @@ inline void parseChoices(std::istream &file, std::vector<uint64_t> &C) {
     }
   }
 }
-  
+
 FileGuide::FileGuide(std::string FileName) {
   std::ifstream file(FileName);
   if (!file.is_open()) {
