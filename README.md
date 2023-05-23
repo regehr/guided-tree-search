@@ -124,5 +124,5 @@ TODO explain why reservoir sampling and MCTS aren't solutions for us
 # Building
 
 This library is header-only, there's nothing to link against, just
-include `generator.h` in your application code.
+include `guide.h` in your application code.
 
