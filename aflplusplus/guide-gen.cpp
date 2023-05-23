@@ -14,6 +14,8 @@ extern "C" {
 /////////////////////////////////////////////////////////////////////////////////////
 // TODO
 // - use a better PRNG
+// - length checks in the afl hook
+// - lots more mutations, including reducer ones
 
 static void seedit(long seed) {
   srand(seed);
