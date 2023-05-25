@@ -794,7 +794,7 @@ public:
   inline void endScope() override{};
 };
 
-static const std::string StartMarker{"// FORMATTED CHOICES:"};
+static const std::string StartMarker{"FORMATTED CHOICES:"};
 static const std::string EndMarker{""};
 
 class FileGuide : public Guide {
@@ -873,7 +873,7 @@ bool FileGuide::parseChoices(std::istream &file, const std::string &Prefix) {
         }
       }
     } else {
-      if (line.find(StartMarker) != std::string::npos)
+      if (line.find(Prefix + StartMarker) != std::string::npos)
         inData = true;
     }
   }
