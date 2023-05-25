@@ -38,7 +38,7 @@ int main() {
   cout << "for " << N << " tests:\n";
   {
     DefaultGuide G1;
-    SaverGuide G2(&G1);
+    SaverGuide G2(&G1, "// ");
     go(G2);
   }
   {

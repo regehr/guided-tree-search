@@ -647,12 +647,13 @@ class SaverChooser;
 class SaverGuide : public Guide {
   friend SaverChooser;
   Guide *SubG;
+  std::string Prefix;
   const size_t MAX_LINE_LENGTH = 70;
 
 public:
   inline SaverGuide(uint64_t Seed) = delete;
   inline SaverGuide() = delete;
-  inline SaverGuide(Guide *_SubG) : SubG(_SubG) {}
+  inline SaverGuide(Guide *_SubG, const std::string &_Prefix) : SubG(_SubG), Prefix(_Prefix) {}
   inline ~SaverGuide() {}
   inline const std::string name() override {
     return SubG->name() + " (wrapped by Saver)";
@@ -733,9 +734,9 @@ void SaverChooser::endScope() {
 
 const std::string SaverChooser::formatChoices() {
   std::string s;
-  s += "// FORMATTED CHOICES:\n";
+  s += G.Prefix + "FORMATTED CHOICES:\n";
   std::vector<uint64_t>::size_type pos = 0;
-  std::string line = "// ";
+  std::string line = G.Prefix;
   while (pos < Saved.size()) {
     std::string item;
     switch (Saved.at(pos).k) {
@@ -754,7 +755,7 @@ const std::string SaverChooser::formatChoices() {
     item += ",";
     if (line.length() + item.length() >= G.MAX_LINE_LENGTH) {
       s += line + "\n";
-      line = "// " + item;
+      line = G.Prefix + item;
     } else {
       line += item;
     }
@@ -809,8 +810,8 @@ public:
     return std::make_unique<FileChooser>(*this);
   }
   inline const std::string name() override { return "file"; }
-  inline bool parseChoices(std::istream &file);
-  inline bool parseChoices(std::string &fileName);
+  inline bool parseChoices(std::istream &file, const std::string &Prefix);
+  inline bool parseChoices(std::string &fileName, const std::string &Prefix);
   inline std::vector<uint64_t> &getChoices() { return Choices; }
   inline void replaceChoices(const std::vector<uint64_t> &C);
 };
@@ -823,22 +824,23 @@ void FileGuide::replaceChoices(const std::vector<uint64_t> &C) {
     Choices.push_back(x);
 }
 
-bool FileGuide::parseChoices(std::istream &file) {
+  bool FileGuide::parseChoices(std::istream &file, const std::string &Prefix) {
   std::string line;
   bool inData = false;
+  auto PrefixLen = Prefix.size();
   while (std::getline(file, line)) {
     if (inData) {
       if (line == EndMarker) {
         break;
       } else {
-        if (line[0] != '/' || line[1] != '/' || line[2] != ' ') {
+        if (line.compare(0, PrefixLen, Prefix) != 0) {
           std::cerr << "FATAL ERROR: Expected every line of choices to start "
-                       "with '// '\n\n";
+            "with '" << Prefix << "'\n\n";
           return false;
         }
         uint64_t val = 0;
         kind k = NONE;
-        for (std::string::size_type pos = 3; pos < line.length(); ++pos) {
+        for (std::string::size_type pos = PrefixLen; pos < line.length(); ++pos) {
           auto c = line[pos];
           if (c == ',') {
             switch (k) {
@@ -877,14 +879,14 @@ bool FileGuide::parseChoices(std::istream &file) {
   return true;
 }
 
-bool FileGuide::parseChoices(std::string &FileName) {
+bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
   std::ifstream file(FileName);
   if (!file.is_open()) {
     std::cerr << "FATAL ERROR: Cannot open choice file '" << FileName
               << "'\n\n";
     return false;
   }
-  auto res = parseChoices(file);
+  auto res = parseChoices(file, Prefix);
   file.close();
   if (!res)
     return false;

@@ -18,9 +18,11 @@ using namespace tree_guide;
 vector<string> FNs;
 vector<string> Generated;
 
+const string Prefix("// ");
+
 void save_choices() {
   DefaultGuide G1;
-  SaverGuide G2(&G1);
+  SaverGuide G2(&G1, Prefix);
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
     auto C1 = G2.makeChooser();
@@ -51,7 +53,7 @@ int use_choices() {
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
     FileGuide G;
-    G.parseChoices(FNs.at(i));
+    G.parseChoices(FNs.at(i), Prefix);
     auto C = G.makeChooser();
     assert(C);
     auto Str = gen(*C, Depth);

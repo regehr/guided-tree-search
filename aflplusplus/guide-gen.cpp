@@ -14,8 +14,8 @@ extern "C" {
 /////////////////////////////////////////////////////////////////////////////////////
 // TODO
 // - use a better PRNG
-// - length checks in the afl hook
-// - lots more mutations, including reducer ones
+// - put length checks in the afl hook
+// - add a lot more mutations, especially nesting-aware ones
 
 static void seedit(long seed) {
   srand(seed);
@@ -24,7 +24,6 @@ static void seedit(long seed) {
 static void change_one(std::vector<uint64_t> &C) {
   long x = rand() % C.size();
   long v = rand();
-  // std::cerr << "going with " <<v << " at index " << x << "\n";
   C.at(x) = v;
 }
 
@@ -97,73 +96,6 @@ extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
   return data;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////
-
-static std::string gen(tree_guide::Chooser &C, long Depth);
-
-static std::string _char(tree_guide::Chooser &C) {
-  switch (C.choose(5)) {
-  case 0:
-    return "a";
-  case 1:
-    return "b";
-  case 2:
-    return "c";
-  case 3:
-    return "d";
-  case 4:
-    return ".";
-  default:
-    assert(false);
-  }
-}
-
-static long num(tree_guide::Chooser &C, long min, long max) {
-  return min + C.choose(max - min);
-}
-
-static std::string gen_helper(tree_guide::Chooser &C, long Depth) {
-  --Depth;
-  if (Depth == 0)
-    return _char(C);
-  switch (C.choose(11)) {
-  case 0:
-    return _char(C);
-  case 1:
-    return gen(C, Depth) + "|" + gen(C, Depth);
-  case 2:
-    return "(" + gen(C, Depth) + ")";
-  case 3:
-    return gen(C, Depth) + gen(C, Depth);
-  case 4:
-    return gen(C, Depth) + "?";
-  case 5:
-    return gen(C, Depth) + "*";
-  case 6:
-    return gen(C, Depth) + "+";
-  case 7:
-    return gen(C, Depth) + "{" + std::to_string(num(C, 1, 5)) + "}";
-  case 8:
-    return gen(C, Depth) + "{" + std::to_string(num(C, 1, 5)) + ",}";
-  case 9:
-    return gen(C, Depth) + "{," + std::to_string(num(C, 1, 5)) + "}";
-  case 10: {
-    auto N = num(C, 0, 5);
-    return gen(C, Depth) + "{" + std::to_string(N) + "," +
-           std::to_string(N + num(C, 0, 4)) + "}";
-  }
-  default:
-    assert(false);
-  }
-}
-
-static std::string gen(tree_guide::Chooser &C, long Depth) {
-  C.beginScope();
-  auto s = gen_helper(C, Depth);
-  C.endScope();
-  return s;
-}
-
 //////////////////////////////////////////////////////////////////////////////
 
 const bool DEBUG = false;
@@ -193,7 +125,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   std::stringstream SS(Str);
   auto FG = new tree_guide::FileGuide;
   if (!FG->parseChoices(SS)) {
-    std::cerr << "couldn't parse choices\n";
+    std::cerr << "ERROR: couldn't parse choices\n";
     // FIXME do something better 
     return 0;
   }
@@ -210,6 +142,9 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   auto Ch2 = static_cast<tree_guide::SaverChooser *>(Ch.get());
   assert(Ch2);
 
+  // shell out to generator, tell it where to put the files
+  // copy the file and updated choice sequence into the AFL buffer
+  
   const int RegexDepth = 6;
   auto S = gen(*Ch2, RegexDepth);
   if (DEBUG)
