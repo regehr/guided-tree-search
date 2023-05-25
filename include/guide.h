@@ -653,7 +653,8 @@ class SaverGuide : public Guide {
 public:
   inline SaverGuide(uint64_t Seed) = delete;
   inline SaverGuide() = delete;
-  inline SaverGuide(Guide *_SubG, const std::string &_Prefix) : SubG(_SubG), Prefix(_Prefix) {}
+  inline SaverGuide(Guide *_SubG, const std::string &_Prefix)
+      : SubG(_SubG), Prefix(_Prefix) {}
   inline ~SaverGuide() {}
   inline const std::string name() override {
     return SubG->name() + " (wrapped by Saver)";
@@ -681,9 +682,7 @@ public:
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
   inline const std::string formatChoices();
-  inline std::vector<rec> &getChoices() {
-    return Saved;
-  }
+  inline std::vector<rec> &getChoices() { return Saved; }
   inline void beginScope() override;
   inline void endScope() override;
 };
@@ -824,7 +823,7 @@ void FileGuide::replaceChoices(const std::vector<uint64_t> &C) {
     Choices.push_back(x);
 }
 
-  bool FileGuide::parseChoices(std::istream &file, const std::string &Prefix) {
+bool FileGuide::parseChoices(std::istream &file, const std::string &Prefix) {
   std::string line;
   bool inData = false;
   auto PrefixLen = Prefix.size();
@@ -835,12 +834,14 @@ void FileGuide::replaceChoices(const std::vector<uint64_t> &C) {
       } else {
         if (line.compare(0, PrefixLen, Prefix) != 0) {
           std::cerr << "FATAL ERROR: Expected every line of choices to start "
-            "with '" << Prefix << "'\n\n";
+                       "with '"
+                    << Prefix << "'\n\n";
           return false;
         }
         uint64_t val = 0;
         kind k = NONE;
-        for (std::string::size_type pos = PrefixLen; pos < line.length(); ++pos) {
+        for (std::string::size_type pos = PrefixLen; pos < line.length();
+             ++pos) {
           auto c = line[pos];
           if (c == ',') {
             switch (k) {
