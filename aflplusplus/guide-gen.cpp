@@ -100,6 +100,10 @@ extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
 
 const bool DEBUG = false;
 
+// Vsevolod you'll need to change these two variables
+const std::string Prefix("; ");
+const std::string Generator("/home/regehr/alive2-regehr/build/quick-fuzz");
+
 /**
  * Perform custom mutations on a given input
  *
@@ -124,7 +128,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   std::string Str((char *)buf, buf_size);
   std::stringstream SS(Str);
   auto FG = new tree_guide::FileGuide;
-  if (!FG->parseChoices(SS)) {
+  if (!FG->parseChoices(SS, Prefix)) {
     std::cerr << "ERROR: couldn't parse choices\n";
     // FIXME do something better 
     return 0;
@@ -137,29 +141,43 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     std::cerr << "mutated\n";
   FG->replaceChoices(C1);
 
-  tree_guide::SaverGuide SG(FG);
+  tree_guide::SaverGuide SG(FG, Prefix);
   auto Ch = SG.makeChooser();
   auto Ch2 = static_cast<tree_guide::SaverChooser *>(Ch.get());
   assert(Ch2);
 
-  // shell out to generator, tell it where to put the files
-  // copy the file and updated choice sequence into the AFL buffer
+  auto pid = fork();
+  if (pid == -1) {
+    std::cerr << "ERROR: fork failed\n";
+    return 0;
+  }
+  if (pid == 0) {
+    // child
+    char *argv[] = { (char *)Generator.c_str(), nullptr };
+    std::string InFn(std::tmpnam(nullptr));
+    std::string OutFn(std::tmpnam(nullptr));
+    auto env1 = "FILEGUIDE_INPUT_FILE=" + InFn;
+    auto env2 = "FILEGUIDE_OUTPUT_FILE=" + OutFn;
+    char *envp[] = { (char *)env1.c_str(), (char *)env2.c_str(), nullptr };
+    auto res = execve(Generator.c_str(), argv, envp);
+    exit(res);
+  }
   
-  const int RegexDepth = 6;
-  auto S = gen(*Ch2, RegexDepth);
-  if (DEBUG)
-    std::cerr << "generated regex: '" << S << "'\n";
+  // parent
+  int wstatus;
+  waitpid(pid, &wstatus, 0);
+  if (!WIFEXITED(wstatus)) {
+    std::cerr << "ERROR: child exited abnormally\n";
+    return 0;
+  }
+  auto ret = WEXITSTATUS(wstatus);
+  if (ret != 0) {
+    std::cerr << "ERROR: child did not return 0\n";
+    return 0;
+  }
 
-  // the mutated choices may contain extra elements, missing elements,
-  // and out-of-range elements; this gets us a cleaned-up version
-  auto C2 = Ch2->formatChoices();
-  if (DEBUG)
-    std::cerr << "formatted choices: '" << S << "'\n";
+  // FIXME load the output file into the returned buffer
   
-  // print the choice sequence into mutated_out
-  strcpy((char *)data->mutated_out, C2.c_str());
-  strcat((char *)data->mutated_out, S.c_str());
-
   if (DEBUG) {
     std::cerr << "buffer:\n";
     std::cerr << (char *)data->mutated_out;
@@ -167,7 +185,6 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   }
   
   *out_buf = data->mutated_out;
-  // return mutated_size;
   return strlen((char *)data->mutated_out);
 }
 
