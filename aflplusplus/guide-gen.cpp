@@ -5,9 +5,9 @@ extern "C" {
 #include <sstream>
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 #include "guide.h"
 
@@ -17,9 +17,7 @@ extern "C" {
 // - put length checks in the afl hook
 // - add a lot more mutations, especially nesting-aware ones
 
-static void seedit(long seed) {
-  srand(seed);
-}
+static void seedit(long seed) { srand(seed); }
 
 static void change_one(std::vector<uint64_t> &C) {
   long x = rand() % C.size();
@@ -62,10 +60,10 @@ static void mutate_choices(std::vector<uint64_t> &C) {
 
 struct my_mutator {
   afl_state_t *afl;
-  size_t       trim_size_current;
-  int          trimmming_steps;
-  int          cur_step;
-  u8          *mutated_out, *post_process_buf, *trim_buf;
+  size_t trim_size_current;
+  int trimmming_steps;
+  int cur_step;
+  u8 *mutated_out, *post_process_buf, *trim_buf;
 };
 
 extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
@@ -123,14 +121,14 @@ const std::string Generator("/home/regehr/alive2-regehr/build/quick-fuzz");
 extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
                                   size_t buf_size, u8 **out_buf,
                                   uint8_t *add_buf,
-                                  size_t   add_buf_size,  // add_buf can be NULL
-                                  size_t   max_size) {
+                                  size_t add_buf_size, // add_buf can be NULL
+                                  size_t max_size) {
   std::string Str((char *)buf, buf_size);
   std::stringstream SS(Str);
   auto FG = new tree_guide::FileGuide;
   if (!FG->parseChoices(SS, Prefix)) {
     std::cerr << "ERROR: couldn't parse choices\n";
-    // FIXME do something better 
+    // FIXME do something better
     return 0;
   }
   auto C1 = FG->getChoices();
@@ -146,6 +144,25 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   auto Ch2 = static_cast<tree_guide::SaverChooser *>(Ch.get());
   assert(Ch2);
 
+  std::string InFn(std::tmpnam(nullptr));
+  std::string OutFn(std::tmpnam(nullptr));
+
+  {
+    std::ofstream Outf(InFn, std::ios::binary);
+    if (!Outf.is_open()) {
+      std::cerr
+          << "ERROR: mutator plugin could not save a file for the generator\n";
+      return 0;
+    }
+    Outf << Prefix + "FORMATTED CHOICES:\n";
+    Outf << Prefix;
+    for (auto c : C1) {
+      Outf << c << ",";
+    }
+    Outf << "\n";
+    Outf.close();
+  }
+
   auto pid = fork();
   if (pid == -1) {
     std::cerr << "ERROR: fork failed\n";
@@ -153,16 +170,14 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   }
   if (pid == 0) {
     // child
-    char *argv[] = { (char *)Generator.c_str(), nullptr };
-    std::string InFn(std::tmpnam(nullptr));
-    std::string OutFn(std::tmpnam(nullptr));
+    char *argv[] = {(char *)Generator.c_str(), nullptr};
     auto env1 = "FILEGUIDE_INPUT_FILE=" + InFn;
     auto env2 = "FILEGUIDE_OUTPUT_FILE=" + OutFn;
-    char *envp[] = { (char *)env1.c_str(), (char *)env2.c_str(), nullptr };
+    char *envp[] = {(char *)env1.c_str(), (char *)env2.c_str(), nullptr};
     auto res = execve(Generator.c_str(), argv, envp);
     exit(res);
   }
-  
+
   // parent
   int wstatus;
   waitpid(pid, &wstatus, 0);
@@ -176,14 +191,26 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     return 0;
   }
 
-  // FIXME load the output file into the returned buffer
-  
+  {
+    std::ifstream Inf(OutFn, std::ios::binary);
+    if (!Inf.is_open()) {
+      std::cerr << "ERROR: mutator plugin could not load file written by the "
+                   "generator\n";
+      return 0;
+    }
+    Inf.read((char *)data->mutated_out, MAX_FILE);
+    Inf.close();
+  }
+
+  std::remove(InFn.c_str());
+  std::remove(OutFn.c_str());
+
   if (DEBUG) {
     std::cerr << "buffer:\n";
     std::cerr << (char *)data->mutated_out;
     std::cerr << "\n\n";
   }
-  
+
   *out_buf = data->mutated_out;
   return strlen((char *)data->mutated_out);
 }
