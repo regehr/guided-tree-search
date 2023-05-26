@@ -11,7 +11,7 @@ ifdef DEBUG
 	CXX := clang++
 endif
 
-# CXXFLAGS += -Wall
+CXXFLAGS += -std=c++2a
 
 all:	guide-gen.so
 

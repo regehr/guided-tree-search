@@ -10,7 +10,7 @@
 const long N = 100;
 const long MaxDepth = 10;
 const bool PRINT = true;
-const bool KEEP = true;
+const bool KEEP = false;
 
 using namespace std;
 using namespace tree_guide;

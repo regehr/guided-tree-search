@@ -642,6 +642,13 @@ uint64_t WeightedSamplerChooser::chooseUnimportant() {
  * to retreive them
  */
 
+enum kind { START = 777, END, NUM, NONE };
+
+struct rec {
+  kind k;
+  uint64_t v;
+};
+
 class SaverChooser;
 
 class SaverGuide : public Guide {
@@ -663,12 +670,6 @@ public:
 };
 
 class SaverChooser : public Chooser {
-  enum kind { START = 777, END, NUM, NONE };
-  struct rec {
-    kind k;
-    uint64_t v;
-  };
-
   SaverGuide &G;
   std::unique_ptr<Chooser> C;
   std::vector<rec> Saved;
@@ -734,7 +735,7 @@ void SaverChooser::endScope() {
 const std::string SaverChooser::formatChoices() {
   std::string s;
   s += G.Prefix + "FORMATTED CHOICES:\n";
-  std::vector<uint64_t>::size_type pos = 0;
+  std::vector<rec>::size_type pos = 0;
   std::string line = G.Prefix;
   while (pos < Saved.size()) {
     std::string item;
@@ -779,8 +780,9 @@ class FileGuide;
 
 class FileChooser : public Chooser {
   FileGuide &G;
-  std::vector<uint64_t>::size_type Pos = 0;
+  std::vector<rec>::size_type Pos = 0;
   uint64_t Counter = 0;
+  inline uint64_t nextVal();
 
 public:
   inline FileChooser(FileGuide &_G) : G(_G) {}
@@ -799,7 +801,7 @@ static const std::string EndMarker{""};
 
 class FileGuide : public Guide {
   friend FileChooser;
-  std::vector<uint64_t> Choices;
+  std::vector<rec> Choices;
 
 public:
   inline FileGuide(uint64_t Seed) = delete;
@@ -811,13 +813,11 @@ public:
   inline const std::string name() override { return "file"; }
   inline bool parseChoices(std::istream &file, const std::string &Prefix);
   inline bool parseChoices(std::string &fileName, const std::string &Prefix);
-  inline std::vector<uint64_t> &getChoices() { return Choices; }
-  inline void replaceChoices(const std::vector<uint64_t> &C);
+  inline std::vector<rec> &getChoices() { return Choices; }
+  inline void replaceChoices(const std::vector<rec> &C);
 };
 
-enum kind { START = 777, END, NUM, NONE };
-
-void FileGuide::replaceChoices(const std::vector<uint64_t> &C) {
+void FileGuide::replaceChoices(const std::vector<rec> &C) {
   Choices.clear();
   for (auto x : C)
     Choices.push_back(x);
@@ -844,9 +844,10 @@ bool FileGuide::parseChoices(std::istream &file, const std::string &Prefix) {
              ++pos) {
           auto c = line[pos];
           if (c == ',') {
+	    rec r;
             switch (k) {
             case NUM:
-              Choices.push_back(val);
+	      r.v = val;
               val = 0;
               break;
             case START:
@@ -856,6 +857,8 @@ bool FileGuide::parseChoices(std::istream &file, const std::string &Prefix) {
             default:
               assert(false);
             }
+	    r.k = k;
+	    Choices.push_back(r);
             k = NONE;
           } else if (c >= '0' && c <= '9') {
             val *= 10;
@@ -912,23 +915,32 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
  *   sampling loop to run forever
  */
 
+uint64_t FileChooser::nextVal() {
+  while (G.Choices.at(Pos).k == START ||
+	 G.Choices.at(Pos).k == END) {
+    ++Pos;
+  }
+  assert(G.Choices.at(Pos).k == NUM);
+  if (Pos < G.Choices.size())
+    return G.Choices.at(Pos++).v;
+  else
+    return Counter++;
+}
+
 uint64_t FileChooser::choose(uint64_t Choices) {
-  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
-  return val % Choices;
+  return nextVal() % Choices;
 }
 
 uint64_t FileChooser::chooseWeighted(const std::vector<double> &Probs) {
-  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
-  return val % Probs.size();
+  return nextVal() % Probs.size();
 }
 
 uint64_t FileChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
-  uint64_t val = (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
-  return val % Probs.size();
+  return nextVal() % Probs.size();
 }
 
 uint64_t FileChooser::chooseUnimportant() {
-  return (Pos < G.Choices.size()) ? G.Choices.at(Pos++) : Counter++;
+  return nextVal();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
