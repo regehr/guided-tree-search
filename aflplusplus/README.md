@@ -13,10 +13,8 @@ The commands below are just examples, you'll likely need to adapt some
 of them to point to the correct directories for you environment. This
 has been tested only on Linux.
 
-1.
-
-Build this version of Alive2, following the standard instructions
-for building Alive2:
+1. Build this version of Alive2, following the standard instructions
+   for building Alive2:
 
 ```
 https://github.com/regehr/alive2/tree/use-tree-guide
