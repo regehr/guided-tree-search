@@ -24,28 +24,47 @@ struct my_mutator {
   u8 *mutated_out, *post_process_buf, *trim_buf;
 };
 
+std::string Prefix, Generator;
+
+static std::string getEnvVar(std::string const &var) {
+  char const *val = getenv(var.c_str()); 
+  return (val == nullptr) ? std::string() : std::string(val);
+}
+
 extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
   seedit(seed);
+
+  Prefix = getEnvVar("FILEGUIDE_COMMENT_PREFIX");
+  if (Prefix.empty()) {
+    std::cerr << "\nERROR: Expected comment string in env var called FILEGUIDE_COMMENT_PREFIX\n\n";
+    exit(-1);
+  }
+
+  Generator = getEnvVar("FILEGUIDE_GENERATOR");
+  if (Generator.empty()) {
+    std::cerr << "\nERROR: Expected full path to generator in env var called FILEGUIDE_GENERATOR\n\n";
+    exit(-1);
+  }
 
   my_mutator *data = (my_mutator *)calloc(1, sizeof(my_mutator));
   if (!data) {
     perror("afl_custom_init alloc");
-    return NULL;
+    exit(-1);
   }
 
   if ((data->mutated_out = (u8 *)malloc(MAX_FILE)) == NULL) {
     perror("afl_custom_init malloc");
-    return NULL;
+    exit(-1);
   }
 
   if ((data->post_process_buf = (u8 *)malloc(MAX_FILE)) == NULL) {
     perror("afl_custom_init malloc");
-    return NULL;
+    exit(-1);
   }
 
   if ((data->trim_buf = (u8 *)malloc(MAX_FILE)) == NULL) {
     perror("afl_custom_init malloc");
-    return NULL;
+    exit(-1);
   }
 
   data->afl = afl;
@@ -53,10 +72,6 @@ extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
 }
 
 //////////////////////////////////////////////////////////////////////////////
-
-// Vsevolod you'll need to change these two variables
-const std::string Prefix("; ");
-const std::string Generator("/home/regehr/alive2-regehr/build/quick-fuzz");
 
 /**
  * Perform custom mutations on a given input

@@ -3,10 +3,6 @@
 - tested against the afl++ stable branch from May 30 2023:
   https://github.com/AFLplusplus/AFLplusplus
 
-- build by running a command like this: `AFL=$HOME/AFLplusplus make`
-
-- run using a command like this: `AFL_CUSTOM_MUTATOR_ONLY=1 AFL_CUSTOM_MUTATOR_LIBRARY=$HOME/guided-tree-search/aflplusplus/guide-gen.so ~/AFLplusplus-regehr/afl-fuzz -i ./in -o out -- /home/regehr/llvm-project/build-for-afl/bin/opt -O2 @@`
-
 ## A Complete Example
 
 The commands below are just examples, you'll likely need to adapt some
@@ -60,5 +56,5 @@ The `out` directory should be empty.
 5. Run AFL++:
 
 ```
-AFL_CUSTOM_MUTATOR_ONLY=1 AFL_CUSTOM_MUTATOR_LIBRARY=$HOME/guided-tree-search/aflplusplus/guide-gen.so $HOME/AFLplusplus/afl-fuzz -i ./in -o out -- $HOME/llvm-project/build-for-afl/bin/opt -O3 @@
+FILEGUIDE_COMMENT_PREFIX=\;\  FILEGUIDE_GENERATOR=$HOME/alive2-regehr/build/quick-fuzz AFL_CUSTOM_MUTATOR_ONLY=1 AFL_CUSTOM_MUTATOR_LIBRARY=$HOME/guided-tree-search/aflplusplus/guide-gen.so $HOME/AFLplusplus/afl-fuzz -i ./in -o out -- $HOME/llvm-project/build-for-afl/bin/opt -O3 @@
 ```
