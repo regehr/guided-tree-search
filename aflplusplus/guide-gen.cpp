@@ -149,6 +149,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     }
     std::cerr << "\n";
     auto res = execve(Generator.c_str(), argv, envp);
+    // of course this line normally does not execute
     exit(res);
   }
 
