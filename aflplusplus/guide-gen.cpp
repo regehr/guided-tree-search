@@ -14,6 +14,8 @@ extern "C" {
 
 /////////////////////////////////////////////////////////////////////////////////////
 
+static bool DEBUG_PLUGIN = false;
+
 struct my_mutator {
   afl_state_t *afl;
   size_t trim_size_current;
@@ -52,8 +54,6 @@ extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
 
 //////////////////////////////////////////////////////////////////////////////
 
-const bool DEBUG = false;
-
 // Vsevolod you'll need to change these two variables
 const std::string Prefix("; ");
 const std::string Generator("/home/regehr/alive2-regehr/build/quick-fuzz");
@@ -88,10 +88,10 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     return 0;
   }
   auto C1 = FG->getChoices();
-  if (DEBUG)
+  if (DEBUG_PLUGIN)
     std::cerr << "parsed " << C1.size() << " choices\n";
   mutate_choices(C1);
-  if (DEBUG)
+  if (DEBUG_PLUGIN)
     std::cerr << "mutated\n";
   FG->replaceChoices(C1);
 
@@ -143,6 +143,11 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     auto env1 = "FILEGUIDE_INPUT_FILE=" + InFn;
     auto env2 = "FILEGUIDE_OUTPUT_FILE=" + OutFn;
     char *envp[] = {(char *)env1.c_str(), (char *)env2.c_str(), nullptr};
+    if (DEBUG_PLUGIN) {
+      for (int i = 0; envp[i] != nullptr; ++i)
+        std::cerr << envp[i] << " ";
+    }
+    std::cerr << "\n";
     auto res = execve(Generator.c_str(), argv, envp);
     exit(res);
   }
@@ -174,7 +179,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   std::remove(InFn.c_str());
   std::remove(OutFn.c_str());
 
-  if (DEBUG) {
+  if (DEBUG_PLUGIN) {
     std::cerr << "buffer:\n";
     std::cerr << (char *)data->mutated_out;
     std::cerr << "\n\n";

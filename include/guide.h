@@ -916,15 +916,17 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
  */
 
 uint64_t FileChooser::nextVal() {
-  while (G.Choices.at(Pos).k == START ||
-	 G.Choices.at(Pos).k == END) {
-    ++Pos;
-  }
-  assert(G.Choices.at(Pos).k == NUM);
-  if (Pos < G.Choices.size())
-    return G.Choices.at(Pos++).v;
-  else
+ again:
+  if (Pos >= G.Choices.size())
     return Counter++;
+  auto r = G.Choices.at(Pos);
+  if (r.k == START || r.k == END) {
+    ++Pos;
+    goto again;
+  }
+  assert(r.k == NUM);
+  ++Pos;
+  return r.v;
 }
 
 uint64_t FileChooser::choose(uint64_t Choices) {
