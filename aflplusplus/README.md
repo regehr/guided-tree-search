@@ -56,5 +56,8 @@ The `out` directory should be empty.
 5. Run AFL++:
 
 ```
-FILEGUIDE_COMMENT_PREFIX=\;\  FILEGUIDE_GENERATOR=$HOME/alive2-regehr/build/quick-fuzz AFL_CUSTOM_MUTATOR_ONLY=1 AFL_CUSTOM_MUTATOR_LIBRARY=$HOME/guided-tree-search/aflplusplus/guide-gen.so $HOME/AFLplusplus/afl-fuzz -i ./in -o out -- $HOME/llvm-project/build-for-afl/bin/opt -O3 @@
+AFL_DEBUG_CHILD=1 FILEGUIDE_COMMENT_PREFIX=\;\  FILEGUIDE_GENERATOR=$HOME/alive2-regehr/build/quick-fuzz AFL_CUSTOM_MUTATOR_ONLY=1 AFL_CUSTOM_MUTATOR_LIBRARY=$HOME/guided-tree-search/aflplusplus/guide-gen.so $HOME/AFLplusplus/afl-fuzz -i ./in -o out -- $HOME/llvm-project/build-for-afl/bin/opt -O3 @@ -o /dev/null
 ```
+
+The AFL_DEBUG_CHILD option ensures that if things are going wrong in
+opt, we'll see the error output.

@@ -181,6 +181,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     return 0;
   }
 
+  std::streamsize amount;
   {
     std::ifstream Inf(OutFn, std::ios::binary);
     if (!Inf.is_open()) {
@@ -189,6 +190,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
       return 0;
     }
     Inf.read((char *)data->mutated_out, MAX_FILE);
+    amount = Inf.gcount();
     Inf.close();
   }
 
@@ -202,7 +204,8 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   }
 
   *out_buf = data->mutated_out;
-  return strlen((char *)data->mutated_out);
+  // return strlen((char *)data->mutated_out);
+  return amount;
 }
 
 extern "C" int32_t afl_custom_init_trim(my_mutator *data, uint8_t *buf,
