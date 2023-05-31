@@ -27,7 +27,7 @@ struct my_mutator {
 std::string Prefix, Generator;
 
 static std::string getEnvVar(std::string const &var) {
-  char const *val = getenv(var.c_str()); 
+  char const *val = getenv(var.c_str());
   return (val == nullptr) ? std::string() : std::string(val);
 }
 
@@ -36,13 +36,15 @@ extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
 
   Prefix = getEnvVar("FILEGUIDE_COMMENT_PREFIX");
   if (Prefix.empty()) {
-    std::cerr << "\nERROR: Expected comment string in env var called FILEGUIDE_COMMENT_PREFIX\n\n";
+    std::cerr << "\nERROR: Expected comment string in env var called "
+                 "FILEGUIDE_COMMENT_PREFIX\n\n";
     exit(-1);
   }
 
   Generator = getEnvVar("FILEGUIDE_GENERATOR");
   if (Generator.empty()) {
-    std::cerr << "\nERROR: Expected full path to generator in env var called FILEGUIDE_GENERATOR\n\n";
+    std::cerr << "\nERROR: Expected full path to generator in env var called "
+                 "FILEGUIDE_GENERATOR\n\n";
     exit(-1);
   }
 
@@ -98,9 +100,10 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   std::stringstream SS(Str);
   auto FG = new tree_guide::FileGuide;
   if (!FG->parseChoices(SS, Prefix)) {
-    std::cerr << "ERROR: couldn't parse choices\n";
-    // FIXME do something better
-    return 0;
+    std::cerr << "ERROR: couldn't parse choices from:\n";
+    std::cerr << SS.str();
+    std::cerr << "--------------------------\n\n";
+    exit(-1);
   }
   auto C1 = FG->getChoices();
   if (DEBUG_PLUGIN)
@@ -123,34 +126,34 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     if (!Outf.is_open()) {
       std::cerr
           << "ERROR: mutator plugin could not save a file for the generator\n";
-      return 0;
+      exit(-1);
     }
-    Outf << Prefix + "FORMATTED CHOICES:\n";
+    Outf << Prefix + tree_guide::StartMarker + "\n";
     Outf << Prefix;
     for (auto c : C1) {
       switch (c.k) {
-      case tree_guide::START:
-	Outf << "{";
-	break;
-      case tree_guide::END:
-	Outf << "}";
-	break;
-      case tree_guide::NUM:
-	Outf << c.v;
-	break;
+      case tree_guide::RecKind::START:
+        Outf << "{";
+        break;
+      case tree_guide::RecKind::END:
+        Outf << "}";
+        break;
+      case tree_guide::RecKind::NUM:
+        Outf << c.v;
+        break;
       default:
-	assert(false);
+        assert(false);
       }
       Outf << ",";
     }
-    Outf << "\n";
+    Outf << "\n" << Prefix + tree_guide::EndMarker + "\n";
     Outf.close();
   }
 
   auto pid = fork();
   if (pid == -1) {
     std::cerr << "ERROR: fork failed\n";
-    return 0;
+    exit(-1);
   }
   if (pid == 0) {
     // child
@@ -173,12 +176,12 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   waitpid(pid, &wstatus, 0);
   if (!WIFEXITED(wstatus)) {
     std::cerr << "ERROR: child exited abnormally\n";
-    return 0;
+    exit(-1);
   }
   auto ret = WEXITSTATUS(wstatus);
   if (ret != 0) {
     std::cerr << "ERROR: child did not return 0\n";
-    return 0;
+    exit(-1);
   }
 
   std::streamsize amount;
@@ -187,7 +190,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     if (!Inf.is_open()) {
       std::cerr << "ERROR: mutator plugin could not load file written by the "
                    "generator\n";
-      return 0;
+      exit(-1);
     }
     Inf.read((char *)data->mutated_out, MAX_FILE);
     amount = Inf.gcount();
@@ -195,7 +198,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   }
 
   std::remove(InFn.c_str());
-  std::remove(OutFn.c_str());
+  //std::remove(OutFn.c_str());
 
   if (DEBUG_PLUGIN) {
     std::cerr << "buffer:\n";

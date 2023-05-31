@@ -7,7 +7,7 @@
 
 #include "gen_regex.h"
 
-const long N = 100;
+const long N = 300;
 const long MaxDepth = 10;
 const bool PRINT = true;
 const bool KEEP = false;
@@ -53,7 +53,8 @@ int use_choices() {
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
     FileGuide G;
-    G.parseChoices(FNs.at(i), Prefix);
+    if (!G.parseChoices(FNs.at(i), Prefix))
+      exit(-1);
     auto C = G.makeChooser();
     assert(C);
     auto Str = gen(*C, Depth);

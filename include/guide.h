@@ -25,8 +25,6 @@ static const bool Verbose = false;
 // TODO just inline this file at some point
 #include "priq.h"
 
-// TODO do we want to detect bad nesting of scopes?
-
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -642,10 +640,13 @@ uint64_t WeightedSamplerChooser::chooseUnimportant() {
  * to retreive them
  */
 
-enum kind { START = 777, END, NUM, NONE };
+static const std::string StartMarker{"BEGIN FORMATTED CHOICES"};
+static const std::string EndMarker{"END FORMATTED CHOICES"};
+
+enum class RecKind { START = 777, END, NUM, NONE };
 
 struct rec {
-  kind k;
+  RecKind k;
   uint64_t v;
 };
 
@@ -694,59 +695,59 @@ std::unique_ptr<Chooser> SaverGuide::makeChooser() {
 
 uint64_t SaverChooser::choose(uint64_t Choices) {
   auto X = C->choose(Choices);
-  rec r{NUM, X};
+  rec r{tree_guide::RecKind::NUM, X};
   Saved.push_back(r);
   return X;
 }
 
 uint64_t SaverChooser::chooseWeighted(const std::vector<double> &Probs) {
   auto X = C->chooseWeighted(Probs);
-  rec r{NUM, X};
+  rec r{tree_guide::RecKind::NUM, X};
   Saved.push_back(r);
   return X;
 }
 
 uint64_t SaverChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   auto X = C->chooseWeighted(Probs);
-  rec r{NUM, X};
+  rec r{tree_guide::RecKind::NUM, X};
   Saved.push_back(r);
   return X;
 }
 
 uint64_t SaverChooser::chooseUnimportant() {
   auto X = C->chooseUnimportant();
-  rec r{NUM, X};
+  rec r{tree_guide::RecKind::NUM, X};
   Saved.push_back(r);
   return X;
 }
 
 void SaverChooser::beginScope() {
-  rec r{START, 0};
+  rec r{tree_guide::RecKind::START, 0};
   Saved.push_back(r);
   C->beginScope();
 }
 
 void SaverChooser::endScope() {
-  rec r{END, 0};
+  rec r{tree_guide::RecKind::END, 0};
   Saved.push_back(r);
   C->endScope();
 }
 
 const std::string SaverChooser::formatChoices() {
   std::string s;
-  s += G.Prefix + "FORMATTED CHOICES:\n";
+  s += G.Prefix + StartMarker + "\n";
   std::vector<rec>::size_type pos = 0;
   std::string line = G.Prefix;
   while (pos < Saved.size()) {
     std::string item;
     switch (Saved.at(pos).k) {
-    case START:
+    case tree_guide::RecKind::START:
       item = "{";
       break;
-    case END:
+    case tree_guide::RecKind::END:
       item = "}";
       break;
-    case NUM:
+    case tree_guide::RecKind::NUM:
       item = std::to_string(Saved.at(pos).v);
       break;
     default:
@@ -761,7 +762,8 @@ const std::string SaverChooser::formatChoices() {
     }
     ++pos;
   }
-  s += line + "\n\n";
+  s += line + "\n";
+  s += G.Prefix + EndMarker + "\n";
   return s;
 }
 
@@ -776,16 +778,19 @@ const std::string SaverChooser::formatChoices() {
  * out-of-range choices (it reduces them to be in range)
  */
 
+enum class Sync { NONE = 888, RESYNC, BALANCE };
+
 class FileGuide;
 
 class FileChooser : public Chooser {
   FileGuide &G;
   std::vector<rec>::size_type Pos = 0;
   uint64_t Counter = 0;
+  Sync S;
   inline uint64_t nextVal();
 
 public:
-  inline FileChooser(FileGuide &_G) : G(_G) {}
+  inline FileChooser(FileGuide &_G, Sync _S) : G(_G), S(_S) {}
   inline ~FileChooser(){};
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
@@ -796,9 +801,6 @@ public:
   inline void endScope() override{};
 };
 
-static const std::string StartMarker{"FORMATTED CHOICES:"};
-static const std::string EndMarker{""};
-
 class FileGuide : public Guide {
   friend FileChooser;
   std::vector<rec> Choices;
@@ -808,7 +810,10 @@ public:
   inline FileGuide() {}
   inline ~FileGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override {
-    return std::make_unique<FileChooser>(*this);
+    return std::make_unique<FileChooser>(*this, tree_guide::Sync::NONE);
+  }
+  inline std::unique_ptr<Chooser> makeChooser(Sync S) {
+    return std::make_unique<FileChooser>(*this, S);
   }
   inline const std::string name() override { return "file"; }
   inline bool parseChoices(std::istream &file, const std::string &Prefix);
@@ -829,7 +834,7 @@ bool FileGuide::parseChoices(std::istream &file, const std::string &Prefix) {
   auto PrefixLen = Prefix.size();
   while (std::getline(file, line)) {
     if (inData) {
-      if (line == EndMarker) {
+      if (line == (Prefix + EndMarker)) {
         break;
       } else {
         if (line.compare(0, PrefixLen, Prefix) != 0) {
@@ -839,38 +844,41 @@ bool FileGuide::parseChoices(std::istream &file, const std::string &Prefix) {
           return false;
         }
         uint64_t val = 0;
-        kind k = NONE;
+        RecKind k = tree_guide::RecKind::NONE;
         for (std::string::size_type pos = PrefixLen; pos < line.length();
              ++pos) {
           auto c = line[pos];
           if (c == ',') {
-	    rec r;
+            rec r;
             switch (k) {
-            case NUM:
-	      r.v = val;
+            case tree_guide::RecKind::NUM:
+              r.v = val;
               val = 0;
               break;
-            case START:
+            case tree_guide::RecKind::START:
               break;
-            case END:
+            case tree_guide::RecKind::END:
               break;
             default:
               assert(false);
             }
-	    r.k = k;
-	    Choices.push_back(r);
-            k = NONE;
+            r.k = k;
+            Choices.push_back(r);
+            k = tree_guide::RecKind::NONE;
           } else if (c >= '0' && c <= '9') {
+            // TODO check for integer overflow here, that could happen
+            // if a choice sequence file got corrupted
             val *= 10;
             val += c - '0';
-            k = NUM;
+            k = tree_guide::RecKind::NUM;
           } else if (c == '{') {
-            k = START;
+            k = tree_guide::RecKind::START;
           } else if (c == '}') {
-            k = END;
+            k = tree_guide::RecKind::END;
           } else {
             std::cerr << "FATAL ERROR: Illegal character '" << c
                       << "' in choice string\n\n";
+            std::cerr << "line: '" << line << "'\n";
             return false;
           }
         }
@@ -879,6 +887,10 @@ bool FileGuide::parseChoices(std::istream &file, const std::string &Prefix) {
       if (line.find(Prefix + StartMarker) != std::string::npos)
         inData = true;
     }
+  }
+  if (Choices.size() == 0) {
+    std::cerr << "FATAL ERROR: No choices could be parsed\n\n";
+    return false;
   }
   return true;
 }
@@ -892,14 +904,7 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
   }
   auto res = parseChoices(file, Prefix);
   file.close();
-  if (!res)
-    return false;
-  if (Choices.size() == 0) {
-    std::cerr << "FATAL ERROR: The file '" << FileName
-              << "' contained no choices\n\n";
-    return false;
-  }
-  return true;
+  return res;
 }
 
 /*
@@ -916,22 +921,20 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
  */
 
 uint64_t FileChooser::nextVal() {
- again:
+again:
   if (Pos >= G.Choices.size())
     return Counter++;
   auto r = G.Choices.at(Pos);
-  if (r.k == START || r.k == END) {
+  if (r.k == tree_guide::RecKind::START || r.k == tree_guide::RecKind::END) {
     ++Pos;
     goto again;
   }
-  assert(r.k == NUM);
+  assert(r.k == tree_guide::RecKind::NUM);
   ++Pos;
   return r.v;
 }
 
-uint64_t FileChooser::choose(uint64_t Choices) {
-  return nextVal() % Choices;
-}
+uint64_t FileChooser::choose(uint64_t Choices) { return nextVal() % Choices; }
 
 uint64_t FileChooser::chooseWeighted(const std::vector<double> &Probs) {
   return nextVal() % Probs.size();
@@ -941,9 +944,7 @@ uint64_t FileChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   return nextVal() % Probs.size();
 }
 
-uint64_t FileChooser::chooseUnimportant() {
-  return nextVal();
-}
+uint64_t FileChooser::chooseUnimportant() { return nextVal(); }
 
 ////////////////////////////////////////////////////////////////////////////////
 
