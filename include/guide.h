@@ -14,12 +14,6 @@
 
 namespace tree_guide {
 
-#ifdef _DEBUG
-static const bool Debug = true;
-#else
-static const bool Debug = false;
-#endif
-
 static const bool Verbose = false;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -995,6 +989,9 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
 
 FileChooser::~FileChooser() {
   if (S == Sync::BALANCE) {
+    // often there's (at least) an end scope still sitting there!
+    while (Pos < G.Choices.size())
+      nextVal();
     if (FileDepth != 0) {
       std::cerr << "FATAL ERROR: Unbalanced scopes with depth " << FileDepth << "\n\n";
       exit(-1);
@@ -1004,16 +1001,23 @@ FileChooser::~FileChooser() {
 
 uint64_t FileChooser::nextVal() {
 again:
-  if (Pos >= G.Choices.size())
+  if (Pos >= G.Choices.size()) {
+    if (Verbose)
+      std::cerr << "Choice sequence exhausted, returning counter\n";
     return Counter++;
+  }
   auto r = G.Choices.at(Pos);
   if (r.k == tree_guide::RecKind::START) {
     ++FileDepth;
     ++Pos;
+    if (Verbose)
+      std::cerr << "START: FileDepth is now " << FileDepth << "\n";
     goto again;
   }
   if (r.k == tree_guide::RecKind::END) {
     --FileDepth;
+    if (Verbose)
+      std::cerr << "END: FileDepth is now " << FileDepth << "\n";
     if (S == Sync::BALANCE && FileDepth < 0) {
       std::cerr << "FATAL ERROR: Negative nesting depth\n\n";
       exit(-1);
@@ -1023,6 +1027,8 @@ again:
   }
   assert(r.k == tree_guide::RecKind::NUM);
   ++Pos;
+  if (Verbose)
+    std::cerr << "Returning number: " << r.v << "\n";
   return r.v;
 }
 

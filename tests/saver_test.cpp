@@ -9,7 +9,7 @@
 
 const long N = 300;
 const long MaxDepth = 10;
-const bool VERBOSE = true;
+const bool VERBOSE = false;
 const bool KEEP = false;
 
 using namespace std;
