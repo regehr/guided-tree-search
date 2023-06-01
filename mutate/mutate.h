@@ -1,4 +1,8 @@
 #include "guide.h"
 
-void seedit(long seed);
+namespace mutator {
+  
+void init(long Seed);
 void mutate_choices(std::vector<tree_guide::rec> &C);
+
+};

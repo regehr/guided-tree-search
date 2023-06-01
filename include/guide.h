@@ -14,16 +14,7 @@
 
 namespace tree_guide {
 
-#ifdef _DEBUG
-static const bool Debug = false;
-#else
-static const bool Debug = false;
-#endif
-
 static const bool Verbose = false;
-
-// TODO just inline this file at some point
-#include "priq.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -70,8 +61,8 @@ public:
 /*
  * DefaultGuide: it's just a wrapped PRNG. the point of this class is
  * to offer the naive alternative to the smarter generators, as a
- * basis for comparison and so people can get used to the API without
- * the heavyweight path selection stuff going on
+ * baseline for comparison and so people can get used to the API
+ * without anything interesting going on
  */
 
 class DefaultGuide;
@@ -81,14 +72,14 @@ class DefaultChooser : public Chooser {
 
 public:
   inline DefaultChooser(DefaultGuide &_G) : G(_G) {}
-  inline ~DefaultChooser(){};
+  inline ~DefaultChooser() {}
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{};
-  inline void endScope() override{};
+  inline void beginScope() override {}
+  inline void endScope() override {}
 };
 
 class DefaultGuide : public Guide {
@@ -109,24 +100,28 @@ public:
 
 uint64_t DefaultChooser::choose(uint64_t Choices) {
   std::uniform_int_distribution<int> Dist(0, Choices - 1);
-  return Dist(*this->G.Rand);
+  return Dist(*G.Rand.get());
 }
 
 uint64_t DefaultChooser::chooseWeighted(const std::vector<double> &Probs) {
   std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
-  return Discrete(*this->G.Rand);
+  return Discrete(*G.Rand.get());
 }
 
 uint64_t DefaultChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
-  return Discrete(*this->G.Rand);
+  return Discrete(*G.Rand.get());
 }
 
-uint64_t DefaultChooser::chooseUnimportant() {
+inline uint64_t fullRange(std::mt19937_64 &G) {
   std::uniform_int_distribution<uint64_t> Dist(
       std::numeric_limits<uint64_t>::min(),
       std::numeric_limits<uint64_t>::max());
-  return Dist(*this->G.Rand);
+  return Dist(G);
+}
+
+uint64_t DefaultChooser::chooseUnimportant() {
+  return fullRange(*G.Rand.get());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -139,6 +134,81 @@ uint64_t DefaultChooser::chooseUnimportant() {
 // TODO this guide uses way too much memory -- since it never frees,
 // it shouldn't be too difficult to replace its allocated cells with a
 // large flat allocation
+
+template <typename T> class PriQ {
+  struct Elt {
+    std::vector<T> Vec;
+    uint64_t StartPos;
+  };
+  std::vector<Elt> Data;
+  uint64_t Highest = (uint64_t)-1;
+  const uint64_t MaxFree = 256;
+
+public:
+  /*
+   * insert element at given level
+   */
+  void insert(T t, uint64_t Level) {
+    if (Level >= (uint64_t)Data.size())
+      Data.resize(Level + 1);
+    Data.at(Level).Vec.push_back(t);
+    if (Highest == (uint64_t)-1 || Level < Highest)
+      Highest = Level;
+  }
+
+  /*
+   * remove item from the given level
+   */
+  std::optional<T> remove(uint64_t Level) {
+    if (Level >= (uint64_t)Data.size())
+      return {};
+    if (count(Level) < 1)
+      return {};
+    auto &Q = Data.at(Level);
+    auto t = Q.Vec.at(Q.StartPos);
+    Q.StartPos++;
+    if (Q.StartPos > MaxFree) {
+      Q.Vec.erase(Q.Vec.begin(), Q.Vec.begin() + Q.StartPos);
+      Q.StartPos = 0;
+    }
+    if (Level == Highest && count(Level) == 0) {
+      Highest = (uint64_t)-1;
+      for (uint64_t L = Level + 1; L < (uint64_t)Data.size(); ++L) {
+        if (count(L) > 0) {
+          Highest = L;
+          break;
+        }
+      }
+    }
+    return t;
+  }
+
+  /*
+   * remove highest-priority item at any level
+   */
+  std::pair<std::optional<T>, uint64_t> removeHead() {
+    auto L = firstNonemptyLevel();
+    if (L == (uint64_t)-1)
+      return {{}, (uint64_t)-1};
+    else
+      return {remove(L), L};
+  }
+
+  /*
+   * return number of items at this level
+   */
+  uint64_t count(uint64_t Level) {
+    if (Level >= Data.size())
+      return 0;
+    return Data.at(Level).Vec.size() - Data.at(Level).StartPos;
+  }
+
+  /*
+   * return the smallest level that is nonempty, or else -1 if all
+   * levels are empty
+   */
+  uint64_t firstNonemptyLevel() { return Highest; }
+};
 
 class BFSChooser;
 
@@ -182,8 +252,8 @@ public:
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{};
-  inline void endScope() override{};
+  inline void beginScope() override {}
+  inline void endScope() override {}
 };
 
 BFSGuide::BFSGuide(uint64_t Seed) {
@@ -375,23 +445,18 @@ bool BFSChooser::flip() { return choose(2); }
 uint64_t BFSChooser::chooseWeighted(const std::vector<double> &Probs) {
   return chooseInternal(Probs.size(), [&]() -> uint64_t {
     std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
-    return Discrete(*this->G.Rand);
+    return Discrete(*G.Rand.get());
   });
 }
 
 uint64_t BFSChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   return chooseInternal(Probs.size(), [&]() -> uint64_t {
     std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
-    return Discrete(*this->G.Rand);
+    return Discrete(*G.Rand.get());
   });
 }
 
-uint64_t BFSChooser::chooseUnimportant() {
-  std::uniform_int_distribution<uint64_t> Dist(
-      std::numeric_limits<uint64_t>::min(),
-      std::numeric_limits<uint64_t>::max());
-  return Dist(*this->G.Rand);
-}
+uint64_t BFSChooser::chooseUnimportant() { return fullRange(*G.Rand.get()); }
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -539,14 +604,14 @@ public:
     // exploit existing nodes but explore occasionally.
     bool explore =
         (current->Children.size() < current->BranchFactor &&
-         (current->Children.size() <= 5 || unif(*this->G.Rand) <= 0.1));
+         (current->Children.size() <= 5 || unif(*G.Rand.get()) <= 0.1));
 
     if (explore) {
       if (current->Weights.size() > 0) {
         std::discrete_distribution<uint64_t> Dist(current->Weights.begin(),
                                                   current->Weights.end());
         while (true) {
-          result = Dist(*this->G.Rand);
+          result = Dist(*G.Rand.get());
           if (current->Children[result] == nullptr)
             break;
         }
@@ -554,7 +619,7 @@ public:
         std::uniform_int_distribution<uint64_t> Dist(0,
                                                      current->BranchFactor - 1);
         while (true) {
-          result = Dist(*this->G.Rand);
+          result = Dist(*G.Rand.get());
           if (current->Children[result] == nullptr)
             break;
         }
@@ -579,7 +644,7 @@ public:
 
       std::discrete_distribution<size_t> Dist(weights.begin(), weights.end());
 
-      auto i = Dist(*this->G.Rand);
+      auto i = Dist(*G.Rand.get());
 
       result = results[i];
 
@@ -601,8 +666,8 @@ public:
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{};
-  inline void endScope() override{};
+  inline void beginScope() override {}
+  inline void endScope() override {}
 };
 
 std::unique_ptr<Chooser> WeightedSamplerGuide::makeChooser() {
@@ -626,10 +691,7 @@ WeightedSamplerChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
 }
 
 uint64_t WeightedSamplerChooser::chooseUnimportant() {
-  std::uniform_int_distribution<uint64_t> Dist(
-      std::numeric_limits<uint64_t>::min(),
-      std::numeric_limits<uint64_t>::max());
-  return Dist(*this->G.Rand);
+  return fullRange(*this->G.Rand);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -677,7 +739,7 @@ class SaverChooser : public Chooser {
 
 public:
   inline SaverChooser(SaverGuide &_G) : G(_G) { C = G.SubG->makeChooser(); }
-  inline ~SaverChooser(){};
+  inline ~SaverChooser() {}
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
@@ -780,47 +842,57 @@ const std::string SaverChooser::formatChoices() {
 
 enum class Sync { NONE = 888, RESYNC, BALANCE };
 
-class FileGuide;
-
-class FileChooser : public Chooser {
-  FileGuide &G;
-  std::vector<rec>::size_type Pos = 0;
-  uint64_t Counter = 0;
-  Sync S;
-  inline uint64_t nextVal();
-
-public:
-  inline FileChooser(FileGuide &_G, Sync _S) : G(_G), S(_S) {}
-  inline ~FileChooser(){};
-  inline uint64_t choose(uint64_t Choices) override;
-  inline bool flip() override { return choose(2); }
-  inline uint64_t chooseWeighted(const std::vector<double> &) override;
-  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
-  inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{};
-  inline void endScope() override{};
-};
+class FileChooser;
 
 class FileGuide : public Guide {
   friend FileChooser;
   std::vector<rec> Choices;
+  std::unique_ptr<std::mt19937_64> Rand;
+  Sync S = Sync::BALANCE;
 
 public:
-  inline FileGuide(uint64_t Seed) = delete;
-  inline FileGuide() {}
+  inline FileGuide(uint64_t Seed) {
+    Rand = std::make_unique<std::mt19937_64>(Seed);
+  }
+  inline FileGuide() : FileGuide(std::random_device{}()) {}
   inline ~FileGuide() {}
-  inline std::unique_ptr<Chooser> makeChooser() override {
-    return std::make_unique<FileChooser>(*this, tree_guide::Sync::NONE);
-  }
-  inline std::unique_ptr<Chooser> makeChooser(Sync S) {
-    return std::make_unique<FileChooser>(*this, S);
-  }
+  inline std::unique_ptr<Chooser> makeChooser() override;
+  inline void setSync(Sync _S) { S = _S; }
   inline const std::string name() override { return "file"; }
   inline bool parseChoices(std::istream &file, const std::string &Prefix);
   inline bool parseChoices(std::string &fileName, const std::string &Prefix);
   inline std::vector<rec> &getChoices() { return Choices; }
   inline void replaceChoices(const std::vector<rec> &C);
 };
+
+class FileChooser : public Chooser {
+  FileGuide &G;
+  std::vector<rec>::size_type Pos = 0;
+  inline uint64_t nextVal();
+  long FileDepth = 0, GeneratorDepth = 0;
+
+public:
+  inline FileChooser(FileGuide &_G) : G(_G) {}
+  inline ~FileChooser();
+  inline uint64_t choose(uint64_t Choices) override;
+  inline bool flip() override { return choose(2); }
+  inline uint64_t chooseWeighted(const std::vector<double> &) override;
+  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
+  inline uint64_t chooseUnimportant() override;
+  inline void beginScope() override { ++GeneratorDepth; }
+  inline void endScope() override {
+    --GeneratorDepth;
+    if (G.S == Sync::BALANCE && GeneratorDepth < 0) {
+      std::cerr
+          << "FATAL ERROR: Negative nesting depth from generator side\n\n";
+      exit(-1);
+    }
+  }
+};
+
+std::unique_ptr<Chooser> FileGuide::makeChooser() {
+  return std::make_unique<FileChooser>(*this);
+}
 
 void FileGuide::replaceChoices(const std::vector<rec> &C) {
   Choices.clear();
@@ -920,18 +992,92 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
  *   sampling loop to run forever
  */
 
+FileChooser::~FileChooser() {
+  if (G.S == Sync::BALANCE) {
+    if (GeneratorDepth != 0) {
+      std::cerr << "FATAL ERROR: Unbalanced scopes from generator with depth "
+                << GeneratorDepth << "\n\n";
+      exit(-1);
+    }
+    // often there's (at least) an end scope still sitting there, we
+    // need to process it
+    while (Pos < G.Choices.size())
+      nextVal();
+    if (FileDepth != 0) {
+      std::cerr << "FATAL ERROR: Unbalanced scopes from file with depth "
+                << FileDepth << "\n\n";
+      exit(-1);
+    }
+  }
+}
+
 uint64_t FileChooser::nextVal() {
 again:
-  if (Pos >= G.Choices.size())
-    return Counter++;
+
+  // if we've exhausted the choice sequence from disk, we have no
+  // choice besides returning randomness
+  if (Pos >= G.Choices.size()) {
+    if (Verbose)
+      std::cerr << "Choice sequence exhausted, returning randomness\n";
+    return fullRange(*G.Rand.get());
+  }
+
   auto r = G.Choices.at(Pos);
-  if (r.k == tree_guide::RecKind::START || r.k == tree_guide::RecKind::END) {
+
+  // next we give the file guide a chance to catch up with the scoping
+  // level of the generator
+
+  if (r.k == tree_guide::RecKind::START) {
+    ++FileDepth;
+    ++Pos;
+    if (Verbose)
+      std::cerr << "START: FileDepth is now " << FileDepth << "\n";
+    goto again;
+  }
+
+  if (r.k == tree_guide::RecKind::END) {
+    --FileDepth;
+    if (Verbose)
+      std::cerr << "END: FileDepth is now " << FileDepth << "\n";
+    if (FileDepth < 0) {
+      std::cerr << "FATAL ERROR: Negative nesting depth from file side\n\n";
+      exit(-1);
+    }
     ++Pos;
     goto again;
   }
+
   assert(r.k == tree_guide::RecKind::NUM);
-  ++Pos;
-  return r.v;
+
+  // now that we have a number to return, there are three choices,
+  // where our overall goal us to force the two scope depths to line
+  // up
+
+  // already lined up -- no problem
+  if (G.S != Sync::RESYNC || FileDepth == GeneratorDepth) {
+    ++Pos;
+    if (Verbose)
+      std::cerr << "Returning number: " << r.v << "\n";
+    return r.v;
+  }
+
+  // we want to avoid returning choices from the file
+  if (FileDepth < GeneratorDepth) {
+    auto v = fullRange(*G.Rand.get());
+    if (Verbose)
+      std::cerr << "Avoiding saved choice and returning random: " << v << "\n";
+    return v;
+  }
+
+  // we want to discard choices from the file
+  if (FileDepth > GeneratorDepth) {
+    if (Verbose)
+      std::cerr << "Discarding saved choice\n";
+    ++Pos;
+    goto again;
+  }
+
+  assert(false);
 }
 
 uint64_t FileChooser::choose(uint64_t Choices) { return nextVal() % Choices; }
@@ -988,15 +1134,15 @@ public:
       }
     } while (C == nullptr && !Reset);
   }
-  inline ~RRChooser(){};
+  inline ~RRChooser() {}
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
   inline bool hasSubChooser() { return C != nullptr; }
-  inline void beginScope() override { C->beginScope(); };
-  inline void endScope() override { C->endScope(); };
+  inline void beginScope() override { C->beginScope(); }
+  inline void endScope() override { C->endScope(); }
 };
 
 uint64_t RRChooser::choose(uint64_t Choices) { return C->choose(Choices); }

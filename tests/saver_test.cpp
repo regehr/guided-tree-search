@@ -9,7 +9,7 @@
 
 const long N = 300;
 const long MaxDepth = 10;
-const bool PRINT = true;
+const bool VERBOSE = false;
 const bool KEEP = false;
 
 using namespace std;
@@ -39,8 +39,8 @@ void save_choices() {
     out << Str << "\n\n";
     out << C2->formatChoices();
     out << "\n";
-    if (PRINT) {
-      cout << Str << "\n\n";
+    if (VERBOSE) {
+      cout << fn << " : " << Str << "\n\n";
       cout << C2->formatChoices();
       cout << "\n";
     }
@@ -53,11 +53,17 @@ int use_choices() {
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
     FileGuide G;
+    if (VERBOSE)
+      cout << "about to parse choices from " << FNs.at(i) << "\n";
     if (!G.parseChoices(FNs.at(i), Prefix))
       exit(-1);
     auto C = G.makeChooser();
     assert(C);
+    if (VERBOSE)
+      cout << "about to generate\n";
     auto Str = gen(*C, Depth);
+    if (VERBOSE)
+      cout << "generated " << Str << "\n";
     assert(Str == Generated.at(i));
     ++pass;
     if (!KEEP)
