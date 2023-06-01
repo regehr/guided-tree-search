@@ -883,7 +883,7 @@ public:
   inline FileGuide() {}
   inline ~FileGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override {
-    return std::make_unique<FileChooser>(*this, tree_guide::Sync::NONE);
+    return std::make_unique<FileChooser>(*this, tree_guide::Sync::BALANCE);
   }
   inline std::unique_ptr<Chooser> makeChooser(Sync S) {
     return std::make_unique<FileChooser>(*this, S);
@@ -996,7 +996,7 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
 FileChooser::~FileChooser() {
   if (S == Sync::BALANCE) {
     if (FileDepth != 0) {
-      std::cerr << "FATAL ERROR: Unbalanced scopes\n\n";
+      std::cerr << "FATAL ERROR: Unbalanced scopes with depth " << FileDepth << "\n\n";
       exit(-1);
     }
   }
