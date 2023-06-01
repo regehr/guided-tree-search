@@ -70,8 +70,8 @@ public:
 /*
  * DefaultGuide: it's just a wrapped PRNG. the point of this class is
  * to offer the naive alternative to the smarter generators, as a
- * basis for comparison and so people can get used to the API without
- * the heavyweight path selection stuff going on
+ * baseline for comparison and so people can get used to the API
+ * without anything interesting going on
  */
 
 class DefaultGuide;
@@ -788,10 +788,11 @@ class FileChooser : public Chooser {
   uint64_t Counter = 0;
   Sync S;
   inline uint64_t nextVal();
+  long FileDepth = 0;
 
 public:
   inline FileChooser(FileGuide &_G, Sync _S) : G(_G), S(_S) {}
-  inline ~FileChooser(){};
+  inline ~FileChooser();
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
@@ -920,12 +921,31 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
  *   sampling loop to run forever
  */
 
+FileChooser::~FileChooser() {
+  if (S == Sync::BALANCE) {
+    if (FileDepth != 0) {
+      std::cerr << "FATAL ERROR: Unbalanced scopes\n\n";
+      exit(-1);
+    }
+  }
+}
+
 uint64_t FileChooser::nextVal() {
 again:
   if (Pos >= G.Choices.size())
     return Counter++;
   auto r = G.Choices.at(Pos);
-  if (r.k == tree_guide::RecKind::START || r.k == tree_guide::RecKind::END) {
+  if (r.k == tree_guide::RecKind::START) {
+    ++FileDepth;
+    ++Pos;
+    goto again;
+  }
+  if (r.k == tree_guide::RecKind::END) {
+    --FileDepth;
+    if (S == Sync::BALANCE && FileDepth < 0) {
+      std::cerr << "FATAL ERROR: Negative nesting depth\n\n";
+      exit(-1);
+    }
     ++Pos;
     goto again;
   }
