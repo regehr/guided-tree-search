@@ -113,11 +113,15 @@ uint64_t DefaultChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   return Discrete(*this->G.Rand);
 }
 
-uint64_t DefaultChooser::chooseUnimportant() {
+inline uint64_t fullRange(std::mt19937_64 &G) {
   std::uniform_int_distribution<uint64_t> Dist(
       std::numeric_limits<uint64_t>::min(),
       std::numeric_limits<uint64_t>::max());
-  return Dist(*this->G.Rand);
+  return Dist(G);
+}
+
+uint64_t DefaultChooser::chooseUnimportant() {
+  return fullRange(*this->G.Rand);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -453,10 +457,7 @@ uint64_t BFSChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
 }
 
 uint64_t BFSChooser::chooseUnimportant() {
-  std::uniform_int_distribution<uint64_t> Dist(
-      std::numeric_limits<uint64_t>::min(),
-      std::numeric_limits<uint64_t>::max());
-  return Dist(*this->G.Rand);
+  return fullRange(*this->G.Rand);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -692,10 +693,7 @@ WeightedSamplerChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
 }
 
 uint64_t WeightedSamplerChooser::chooseUnimportant() {
-  std::uniform_int_distribution<uint64_t> Dist(
-      std::numeric_limits<uint64_t>::min(),
-      std::numeric_limits<uint64_t>::max());
-  return Dist(*this->G.Rand);
+  return fullRange(*this->G.Rand);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -851,10 +849,10 @@ class FileGuide;
 class FileChooser : public Chooser {
   FileGuide &G;
   std::vector<rec>::size_type Pos = 0;
-  uint64_t Counter = 0;
   Sync S;
   inline uint64_t nextVal();
   long FileDepth = 0;
+  int Counter = 0;
 
 public:
   inline FileChooser(FileGuide &_G, Sync _S) : G(_G), S(_S) {}
@@ -989,7 +987,8 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
 
 FileChooser::~FileChooser() {
   if (S == Sync::BALANCE) {
-    // often there's (at least) an end scope still sitting there!
+    // often there's (at least) an end scope still sitting there, we
+    // need to process it
     while (Pos < G.Choices.size())
       nextVal();
     if (FileDepth != 0) {
