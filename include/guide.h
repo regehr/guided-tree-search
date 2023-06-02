@@ -100,17 +100,17 @@ public:
 
 uint64_t DefaultChooser::choose(uint64_t Choices) {
   std::uniform_int_distribution<int> Dist(0, Choices - 1);
-  return Dist(*this->G.Rand);
+  return Dist(*G.Rand.get());
 }
 
 uint64_t DefaultChooser::chooseWeighted(const std::vector<double> &Probs) {
   std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
-  return Discrete(*this->G.Rand);
+  return Discrete(*G.Rand.get());
 }
 
 uint64_t DefaultChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
-  return Discrete(*this->G.Rand);
+  return Discrete(*G.Rand.get());
 }
 
 inline uint64_t fullRange(std::mt19937_64 &G) {
@@ -121,7 +121,7 @@ inline uint64_t fullRange(std::mt19937_64 &G) {
 }
 
 uint64_t DefaultChooser::chooseUnimportant() {
-  return fullRange(*this->G.Rand);
+  return fullRange(*G.Rand.get());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -445,19 +445,19 @@ bool BFSChooser::flip() { return choose(2); }
 uint64_t BFSChooser::chooseWeighted(const std::vector<double> &Probs) {
   return chooseInternal(Probs.size(), [&]() -> uint64_t {
     std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
-    return Discrete(*this->G.Rand);
+    return Discrete(*G.Rand.get());
   });
 }
 
 uint64_t BFSChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   return chooseInternal(Probs.size(), [&]() -> uint64_t {
     std::discrete_distribution<uint64_t> Discrete(Probs.begin(), Probs.end());
-    return Discrete(*this->G.Rand);
+    return Discrete(*G.Rand.get());
   });
 }
 
 uint64_t BFSChooser::chooseUnimportant() {
-  return fullRange(*this->G.Rand);
+  return fullRange(*G.Rand.get());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -606,14 +606,14 @@ public:
     // exploit existing nodes but explore occasionally.
     bool explore =
         (current->Children.size() < current->BranchFactor &&
-         (current->Children.size() <= 5 || unif(*this->G.Rand) <= 0.1));
+         (current->Children.size() <= 5 || unif(*G.Rand.get()) <= 0.1));
 
     if (explore) {
       if (current->Weights.size() > 0) {
         std::discrete_distribution<uint64_t> Dist(current->Weights.begin(),
                                                   current->Weights.end());
         while (true) {
-          result = Dist(*this->G.Rand);
+          result = Dist(*G.Rand.get());
           if (current->Children[result] == nullptr)
             break;
         }
@@ -621,7 +621,7 @@ public:
         std::uniform_int_distribution<uint64_t> Dist(0,
                                                      current->BranchFactor - 1);
         while (true) {
-          result = Dist(*this->G.Rand);
+          result = Dist(*G.Rand.get());
           if (current->Children[result] == nullptr)
             break;
         }
@@ -646,7 +646,7 @@ public:
 
       std::discrete_distribution<size_t> Dist(weights.begin(), weights.end());
 
-      auto i = Dist(*this->G.Rand);
+      auto i = Dist(*G.Rand.get());
 
       result = results[i];
 
@@ -852,7 +852,6 @@ class FileChooser : public Chooser {
   Sync S;
   inline uint64_t nextVal();
   long FileDepth = 0;
-  int Counter = 0;
 
 public:
   inline FileChooser(FileGuide &_G, Sync _S) : G(_G), S(_S) {}
@@ -1006,7 +1005,7 @@ again:
   if (Pos >= G.Choices.size()) {
     if (Verbose)
       std::cerr << "Choice sequence exhausted, returning counter\n";
-    return Counter++;
+    return fullRange(*G.Rand.get());
   }
   auto r = G.Choices.at(Pos);
   if (r.k == tree_guide::RecKind::START) {
