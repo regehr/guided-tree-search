@@ -32,7 +32,7 @@ static std::string getEnvVar(std::string const &var) {
 }
 
 extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
-  seedit(seed);
+  mutator::init(seed);
 
   Prefix = getEnvVar("FILEGUIDE_COMMENT_PREFIX");
   if (Prefix.empty()) {
@@ -108,7 +108,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   auto C1 = FG->getChoices();
   if (DEBUG_PLUGIN)
     std::cerr << "parsed " << C1.size() << " choices\n";
-  mutate_choices(C1);
+  mutator::mutate_choices(C1);
   if (DEBUG_PLUGIN)
     std::cerr << "mutated\n";
   FG->replaceChoices(C1);

@@ -2,13 +2,16 @@
 
 using namespace tree_guide;
 
+namespace mutator {
+
 /////////////////////////////////////////////////////////////////////////////////////
 // TODO
 // - lots more work on scope-aware mutations
+// - a namespace for this stuff?
 
 static std::unique_ptr<std::mt19937_64> Rand;
 
-void seedit(long Seed) { Rand = std::make_unique<std::mt19937_64>(Seed); }
+void init(long Seed) { Rand = std::make_unique<std::mt19937_64>(Seed); }
 
 static void change_one(std::vector<rec> &C) {
   std::uniform_int_distribution<uint64_t> FullDist(
@@ -17,7 +20,8 @@ static void change_one(std::vector<rec> &C) {
   std::uniform_int_distribution<uint64_t> LimitedDist(0, C.size() - 1);
   uint64_t x;
   // this could perform poorly if a choice sequence is almost entirely
-  // scope changes, but we don't expect that to happen
+  // scope changes, or loop infinitely if there aren't any numeric
+  // choices, we'll deal with that when it happens
   do {
     x = LimitedDist(*Rand.get());
   } while (C.at(x).k != RecKind::NUM);
@@ -30,3 +34,6 @@ void mutate_choices(std::vector<rec> &C) {
     change_one(C);
   } while (CoinDist(*Rand.get()) == 0);
 }
+
+} // end namespace mutator
+

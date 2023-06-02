@@ -41,20 +41,57 @@ void make_choices() {
   }
 }
 
-void mutate_choices() {
+void printChoices(const vector<rec> &C) {
+  for (auto r : C) {
+    switch (r.k) {
+    case RecKind::START:
+      cout << "{";
+      break;
+    case RecKind::END:
+      cout << "}";
+      break;
+    case RecKind::NUM:
+      cout << r.v;
+      break;
+    default:
+      assert(false);
+    }
+    cout << " ";
+  }
+  cout << "\n\n";
 }
 
 int use_choices() {
   int pass = 0;
+  mutator::init(444);
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
     FileGuide G;
     stringstream s(Choices.at(i));
     if (!G.parseChoices(s, Prefix))
       exit(-1);
-    auto C = G.makeChooser();
-    assert(C);
-    auto Str = gen(*C, Depth);
+
+    if (VERBOSE)
+      cout << "-------------------- " << i << " --------------------\n";
+    
+    auto Ch = G.getChoices();
+    if (VERBOSE) {
+      cout << "original choices:\n";
+      printChoices(Ch);
+    }
+
+    mutator::mutate_choices(Ch);
+    
+    if (VERBOSE) {
+      cout << "mutated choices:\n";
+      printChoices(Ch);
+    }
+
+    G.replaceChoices(Ch);
+
+    auto C1 = G.makeChooser(Sync::RESYNC);
+    assert(C1);
+    auto Str = gen(*C1, Depth);
     if (VERBOSE)
       cout << "generated: " << Str << "\n";
     assert(Str == Generated.at(i));
@@ -67,7 +104,6 @@ int use_choices() {
 
 int main() {
   make_choices();
-  mutate_choices();
-  int pass = use_choices();
+  auto pass = use_choices();
   cout << pass << " tests passed.\n";
 }

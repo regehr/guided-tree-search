@@ -1054,7 +1054,7 @@ again:
   // up
 
   // already lined up -- no problem
-  if (FileDepth == GeneratorDepth) {
+  if (S != Sync::RESYNC || FileDepth == GeneratorDepth) {
     ++Pos;
     if (Verbose)
       std::cerr << "Returning number: " << r.v << "\n";
