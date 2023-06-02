@@ -8,9 +8,7 @@ using namespace tree_guide;
 
 static std::unique_ptr<std::mt19937_64> Rand;
 
-void seedit(long Seed) {
-  Rand = std::make_unique<std::mt19937_64>(Seed);
-}
+void seedit(long Seed) { Rand = std::make_unique<std::mt19937_64>(Seed); }
 
 static void change_one(std::vector<rec> &C) {
   std::uniform_int_distribution<uint64_t> FullDist(
