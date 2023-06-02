@@ -1062,12 +1062,20 @@ uint64_t FileChooser::nextVal() {
     return r.v;
   }
 
-  // we need to stall reads from the choice sequence from the file
+  // we want to avoid returning choices from the file
   if (FileDepth > GeneratorDepth) {
+    auto v = fullRange(*G.Rand.get());
+    if (Verbose)
+      std::cerr << "Avoiding saved choice and returning random: " << v << "\n";
+    return v;
   }
 
-  // we need to discard choices from the file
+  // we want to discard choices from the file
   if (FileDepth < GeneratorDepth) {
+    if (Verbose)
+      std::cerr << "Discarding saved choice\n";
+    ++Pos;
+    goto again;
   }
 
   assert(false);
