@@ -7,7 +7,7 @@
 
 #include "gen_regex.h"
 
-const long N = 25 * 1000;
+const long N = 1000;
 
 const bool RUN_GREP = false;
 

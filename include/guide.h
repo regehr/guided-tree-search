@@ -1049,8 +1049,9 @@ again:
 
   assert(r.k == tree_guide::RecKind::NUM);
 
-  // now that we have a number to return, we have three choices, where
-  // our overall goal us to force the two scope depths to line up
+  // now that we have a number to return, there are three choices,
+  // where our overall goal us to force the two scope depths to line
+  // up
 
   // already lined up -- no problem
   if (FileDepth == GeneratorDepth) {
@@ -1061,7 +1062,7 @@ again:
   }
 
   // we want to avoid returning choices from the file
-  if (FileDepth > GeneratorDepth) {
+  if (FileDepth < GeneratorDepth) {
     auto v = fullRange(*G.Rand.get());
     if (Verbose)
       std::cerr << "Avoiding saved choice and returning random: " << v << "\n";
@@ -1069,7 +1070,7 @@ again:
   }
 
   // we want to discard choices from the file
-  if (FileDepth < GeneratorDepth) {
+  if (FileDepth > GeneratorDepth) {
     if (Verbose)
       std::cerr << "Discarding saved choice\n";
     ++Pos;
