@@ -7,7 +7,6 @@ namespace mutator {
 /////////////////////////////////////////////////////////////////////////////////////
 // TODO
 // - lots more work on scope-aware mutations
-// - a namespace for this stuff?
 
 static std::unique_ptr<std::mt19937_64> Rand;
 
