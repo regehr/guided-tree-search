@@ -72,14 +72,14 @@ class DefaultChooser : public Chooser {
 
 public:
   inline DefaultChooser(DefaultGuide &_G) : G(_G) {}
-  inline ~DefaultChooser(){};
+  inline ~DefaultChooser(){}
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{};
-  inline void endScope() override{};
+  inline void beginScope() override{}
+  inline void endScope() override{}
 };
 
 class DefaultGuide : public Guide {
@@ -252,8 +252,8 @@ public:
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{};
-  inline void endScope() override{};
+  inline void beginScope() override{}
+  inline void endScope() override{}
 };
 
 BFSGuide::BFSGuide(uint64_t Seed) {
@@ -668,8 +668,8 @@ public:
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{};
-  inline void endScope() override{};
+  inline void beginScope() override{}
+  inline void endScope() override{}
 };
 
 std::unique_ptr<Chooser> WeightedSamplerGuide::makeChooser() {
@@ -741,7 +741,7 @@ class SaverChooser : public Chooser {
 
 public:
   inline SaverChooser(SaverGuide &_G) : G(_G) { C = G.SubG->makeChooser(); }
-  inline ~SaverChooser(){};
+  inline ~SaverChooser(){}
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
@@ -851,7 +851,7 @@ class FileChooser : public Chooser {
   std::vector<rec>::size_type Pos = 0;
   Sync S;
   inline uint64_t nextVal();
-  long FileDepth = 0;
+  long FileDepth = 0, GeneratorDepth = 0;
 
 public:
   inline FileChooser(FileGuide &_G, Sync _S) : G(_G), S(_S) {}
@@ -861,8 +861,12 @@ public:
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{};
-  inline void endScope() override{};
+  inline void beginScope() override{
+    ++GeneratorDepth;
+  }
+  inline void endScope() override{
+    --GeneratorDepth;
+  }
 };
 
 class FileGuide : public Guide {
@@ -1087,15 +1091,15 @@ public:
       }
     } while (C == nullptr && !Reset);
   }
-  inline ~RRChooser(){};
+  inline ~RRChooser(){}
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
   inline bool hasSubChooser() { return C != nullptr; }
-  inline void beginScope() override { C->beginScope(); };
-  inline void endScope() override { C->endScope(); };
+  inline void beginScope() override { C->beginScope(); }
+  inline void endScope() override { C->endScope(); }
 };
 
 uint64_t RRChooser::choose(uint64_t Choices) { return C->choose(Choices); }
