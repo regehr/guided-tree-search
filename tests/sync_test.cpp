@@ -63,7 +63,7 @@ void printChoices(const vector<rec> &C) {
 
 int use_choices() {
   int pass = 0;
-  mutator::init(444);
+  mutator::init(std::random_device{}());
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
     FileGuide G;
