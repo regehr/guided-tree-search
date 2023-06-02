@@ -49,7 +49,7 @@ int use_choices() {
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
     FileGuide G;
-    stringstream s(Generated.at(i));
+    stringstream s(Choices.at(i));
     if (!G.parseChoices(s, Prefix))
       exit(-1);
     auto C = G.makeChooser();
