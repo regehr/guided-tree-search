@@ -66,15 +66,16 @@ int use_choices() {
   mutator::init(std::random_device{}());
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
-    FileGuide G;
+    FileGuide FG;
+    FG.setSync(Sync::RESYNC);
     stringstream s(Choices.at(i));
-    if (!G.parseChoices(s, Prefix))
+    if (!FG.parseChoices(s, Prefix))
       exit(-1);
 
     if (VERBOSE)
       cout << "-------------------- " << i << " --------------------\n";
     
-    auto Ch = G.getChoices();
+    auto Ch = FG.getChoices();
     if (VERBOSE) {
       cout << "original choices:\n";
       printChoices(Ch);
@@ -87,9 +88,14 @@ int use_choices() {
       printChoices(Ch);
     }
 
-    G.replaceChoices(Ch);
+    FG.replaceChoices(Ch);
 
-    auto C1 = G.makeChooser(Sync::RESYNC);
+    tree_guide::SaverGuide SG(&FG, Prefix);
+    auto Ch1 = SG.makeChooser();
+    auto Ch2 = static_cast<tree_guide::SaverChooser *>(Ch1.get());
+    assert(Ch2);
+
+    auto C1 = FG.makeChooser();
     assert(C1);
     auto Str = gen(*C1, Depth);
     if (VERBOSE)

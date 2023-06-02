@@ -842,17 +842,37 @@ const std::string SaverChooser::formatChoices() {
 
 enum class Sync { NONE = 888, RESYNC, BALANCE };
 
-class FileGuide;
+class FileChooser;
+
+class FileGuide : public Guide {
+  friend FileChooser;
+  std::vector<rec> Choices;
+  std::unique_ptr<std::mt19937_64> Rand;
+  Sync S = Sync::BALANCE;
+
+public:
+  inline FileGuide(uint64_t Seed) {
+    Rand = std::make_unique<std::mt19937_64>(Seed);
+  }
+  inline FileGuide() : FileGuide(std::random_device{}()) {}
+  inline ~FileGuide() {}
+  inline std::unique_ptr<Chooser> makeChooser() override;
+  inline void setSync(Sync _S) { S = _S; }
+  inline const std::string name() override { return "file"; }
+  inline bool parseChoices(std::istream &file, const std::string &Prefix);
+  inline bool parseChoices(std::string &fileName, const std::string &Prefix);
+  inline std::vector<rec> &getChoices() { return Choices; }
+  inline void replaceChoices(const std::vector<rec> &C);
+};
 
 class FileChooser : public Chooser {
   FileGuide &G;
   std::vector<rec>::size_type Pos = 0;
-  Sync S;
   inline uint64_t nextVal();
   long FileDepth = 0, GeneratorDepth = 0;
 
 public:
-  inline FileChooser(FileGuide &_G, Sync _S) : G(_G), S(_S) {}
+  inline FileChooser(FileGuide &_G) : G(_G) {}
   inline ~FileChooser();
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
@@ -862,7 +882,7 @@ public:
   inline void beginScope() override { ++GeneratorDepth; }
   inline void endScope() override {
     --GeneratorDepth;
-    if (S == Sync::BALANCE && GeneratorDepth < 0) {
+    if (G.S == Sync::BALANCE && GeneratorDepth < 0) {
       std::cerr
           << "FATAL ERROR: Negative nesting depth from generator side\n\n";
       exit(-1);
@@ -870,29 +890,9 @@ public:
   }
 };
 
-class FileGuide : public Guide {
-  friend FileChooser;
-  std::vector<rec> Choices;
-  std::unique_ptr<std::mt19937_64> Rand;
-
-public:
-  inline FileGuide(uint64_t Seed) {
-    Rand = std::make_unique<std::mt19937_64>(Seed);
-  }
-  inline FileGuide() : FileGuide(std::random_device{}()) {}
-  inline ~FileGuide() {}
-  inline std::unique_ptr<Chooser> makeChooser() override {
-    return std::make_unique<FileChooser>(*this, Sync::BALANCE);
-  }
-  inline std::unique_ptr<Chooser> makeChooser(Sync S) {
-    return std::make_unique<FileChooser>(*this, S);
-  }
-  inline const std::string name() override { return "file"; }
-  inline bool parseChoices(std::istream &file, const std::string &Prefix);
-  inline bool parseChoices(std::string &fileName, const std::string &Prefix);
-  inline std::vector<rec> &getChoices() { return Choices; }
-  inline void replaceChoices(const std::vector<rec> &C);
-};
+std::unique_ptr<Chooser> FileGuide::makeChooser() {
+  return std::make_unique<FileChooser>(*this);
+}
 
 void FileGuide::replaceChoices(const std::vector<rec> &C) {
   Choices.clear();
@@ -993,7 +993,7 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
  */
 
 FileChooser::~FileChooser() {
-  if (S == Sync::BALANCE) {
+  if (G.S == Sync::BALANCE) {
     if (GeneratorDepth != 0) {
       std::cerr << "FATAL ERROR: Unbalanced scopes from generator with depth "
                 << GeneratorDepth << "\n\n";
@@ -1054,7 +1054,7 @@ again:
   // up
 
   // already lined up -- no problem
-  if (S != Sync::RESYNC || FileDepth == GeneratorDepth) {
+  if (G.S != Sync::RESYNC || FileDepth == GeneratorDepth) {
     ++Pos;
     if (Verbose)
       std::cerr << "Returning number: " << r.v << "\n";
