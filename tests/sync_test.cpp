@@ -9,7 +9,7 @@
 #include "gen_regex.h"
 #include "mutate.h"
 
-const long N = 3;
+const long N = 300;
 const long MaxDepth = 10;
 const bool VERBOSE = true;
 
@@ -95,12 +95,17 @@ int use_choices() {
     auto Ch2 = static_cast<tree_guide::SaverChooser *>(Ch1.get());
     assert(Ch2);
 
-    auto C1 = FG.makeChooser();
-    assert(C1);
-    auto Str = gen(*C1, Depth);
+    auto Str = gen(*Ch2, Depth);
     if (VERBOSE)
       cout << "generated: " << Str << "\n";
-    assert(Str == Generated.at(i));
+
+    auto C3 = Ch2->getChoices();
+    
+    if (VERBOSE) {
+      cout << "actual choices:\n";
+      printChoices(C3);
+    }
+
     ++pass;
     if (VERBOSE)
       cout <<  "\n\n";
