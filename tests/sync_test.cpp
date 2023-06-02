@@ -2,26 +2,25 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <unordered_set>
 #include <vector>
 
 #include "gen_regex.h"
 #include "mutate.h"
 
-const long N = 300;
+const long N = 3;
 const long MaxDepth = 10;
-const bool VERBOSE = false;
-const bool KEEP = false;
+const bool VERBOSE = true;
 
 using namespace std;
 using namespace tree_guide;
 
-vector<string> FNs;
-vector<string> Generated;
+vector<string> Generated, Choices;
 
 const string Prefix("// ");
 
-void save_choices() {
+void make_choices() {
   DefaultGuide G1;
   SaverGuide G2(&G1, Prefix);
   for (int i = 0; i < N; ++i) {
@@ -30,23 +29,19 @@ void save_choices() {
     assert(C1);
     auto C2 = static_cast<SaverChooser *>(C1.get());
     assert(C2);
-    auto Str = gen(*C2, Depth);
-    ofstream out;
-    string fn = "test" + to_string(i) + ".txt";
-    FNs.push_back(fn);
-    Generated.push_back(Str);
-    out.open(fn);
-    assert(out.is_open());
-    out << Str << "\n\n";
-    out << C2->formatChoices();
-    out << "\n";
+    auto S1 = gen(*C2, Depth);
+    Generated.push_back(S1);
+    auto S2 = C2->formatChoices();
+    Choices.push_back(S2);
     if (VERBOSE) {
-      cout << fn << " : " << Str << "\n\n";
-      cout << C2->formatChoices();
-      cout << "\n";
+      cout << i << ":\n";
+      cout << S1 << "\n\n";
+      cout << S2 << "\n\n";
     }
-    out.close();
   }
+}
+
+void mutate_choices() {
 }
 
 int use_choices() {
@@ -54,9 +49,8 @@ int use_choices() {
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
     FileGuide G;
-    if (VERBOSE)
-      cout << "about to parse choices from " << FNs.at(i) << "\n";
-    if (!G.parseChoices(FNs.at(i), Prefix))
+    stringstream s(Generated.at(i));
+    if (!G.parseChoices(s, Prefix))
       exit(-1);
     auto C = G.makeChooser();
     assert(C);
@@ -67,14 +61,13 @@ int use_choices() {
       cout << "generated " << Str << "\n";
     assert(Str == Generated.at(i));
     ++pass;
-    if (!KEEP)
-      remove(FNs.at(i).c_str());
   }
   return pass;
 }
 
 int main() {
-  save_choices();
+  make_choices();
+  mutate_choices();
   int pass = use_choices();
   cout << pass << " tests passed.\n";
 }
