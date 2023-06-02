@@ -72,14 +72,14 @@ class DefaultChooser : public Chooser {
 
 public:
   inline DefaultChooser(DefaultGuide &_G) : G(_G) {}
-  inline ~DefaultChooser(){}
+  inline ~DefaultChooser() {}
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{}
-  inline void endScope() override{}
+  inline void beginScope() override {}
+  inline void endScope() override {}
 };
 
 class DefaultGuide : public Guide {
@@ -252,8 +252,8 @@ public:
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{}
-  inline void endScope() override{}
+  inline void beginScope() override {}
+  inline void endScope() override {}
 };
 
 BFSGuide::BFSGuide(uint64_t Seed) {
@@ -456,9 +456,7 @@ uint64_t BFSChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
   });
 }
 
-uint64_t BFSChooser::chooseUnimportant() {
-  return fullRange(*G.Rand.get());
-}
+uint64_t BFSChooser::chooseUnimportant() { return fullRange(*G.Rand.get()); }
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -668,8 +666,8 @@ public:
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{}
-  inline void endScope() override{}
+  inline void beginScope() override {}
+  inline void endScope() override {}
 };
 
 std::unique_ptr<Chooser> WeightedSamplerGuide::makeChooser() {
@@ -741,7 +739,7 @@ class SaverChooser : public Chooser {
 
 public:
   inline SaverChooser(SaverGuide &_G) : G(_G) { C = G.SubG->makeChooser(); }
-  inline ~SaverChooser(){}
+  inline ~SaverChooser() {}
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
@@ -861,13 +859,12 @@ public:
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
   inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
   inline uint64_t chooseUnimportant() override;
-  inline void beginScope() override{
-    ++GeneratorDepth;
-  }
-  inline void endScope() override{
+  inline void beginScope() override { ++GeneratorDepth; }
+  inline void endScope() override {
     --GeneratorDepth;
     if (S == Sync::BALANCE && GeneratorDepth < 0) {
-      std::cerr << "FATAL ERROR: Negative nesting depth from generator side\n\n";
+      std::cerr
+          << "FATAL ERROR: Negative nesting depth from generator side\n\n";
       exit(-1);
     }
   }
@@ -998,7 +995,8 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
 FileChooser::~FileChooser() {
   if (S == Sync::BALANCE) {
     if (GeneratorDepth != 0) {
-      std::cerr << "FATAL ERROR: Unbalanced scopes from generator with depth " << GeneratorDepth << "\n\n";
+      std::cerr << "FATAL ERROR: Unbalanced scopes from generator with depth "
+                << GeneratorDepth << "\n\n";
       exit(-1);
     }
     // often there's (at least) an end scope still sitting there, we
@@ -1006,18 +1004,18 @@ FileChooser::~FileChooser() {
     while (Pos < G.Choices.size())
       nextVal();
     if (FileDepth != 0) {
-      std::cerr << "FATAL ERROR: Unbalanced scopes from file with depth " << FileDepth << "\n\n";
+      std::cerr << "FATAL ERROR: Unbalanced scopes from file with depth "
+                << FileDepth << "\n\n";
       exit(-1);
     }
   }
 }
 
 uint64_t FileChooser::nextVal() {
- again:
+again:
 
   // if we've exhausted the choice sequence from disk, we have no
   // choice besides returning randomness
-  
   if (Pos >= G.Choices.size()) {
     if (Verbose)
       std::cerr << "Choice sequence exhausted, returning randomness\n";
@@ -1028,7 +1026,7 @@ uint64_t FileChooser::nextVal() {
 
   // next we give the file guide a chance to catch up with the scoping
   // level of the generator
-  
+
   if (r.k == tree_guide::RecKind::START) {
     ++FileDepth;
     ++Pos;
@@ -1135,7 +1133,7 @@ public:
       }
     } while (C == nullptr && !Reset);
   }
-  inline ~RRChooser(){}
+  inline ~RRChooser() {}
   inline uint64_t choose(uint64_t Choices) override;
   inline bool flip() override { return choose(2); }
   inline uint64_t chooseWeighted(const std::vector<double> &) override;
