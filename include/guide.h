@@ -866,6 +866,10 @@ public:
   }
   inline void endScope() override{
     --GeneratorDepth;
+    if (S == Sync::BALANCE && GeneratorDepth < 0) {
+      std::cerr << "FATAL ERROR: Negative nesting depth from generator side\n\n";
+      exit(-1);
+    }
   }
 };
 
@@ -881,7 +885,7 @@ public:
   inline FileGuide() : FileGuide(std::random_device{}()) {}
   inline ~FileGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override {
-    return std::make_unique<FileChooser>(*this, tree_guide::Sync::BALANCE);
+    return std::make_unique<FileChooser>(*this, Sync::BALANCE);
   }
   inline std::unique_ptr<Chooser> makeChooser(Sync S) {
     return std::make_unique<FileChooser>(*this, S);
@@ -993,12 +997,16 @@ bool FileGuide::parseChoices(std::string &FileName, const std::string &Prefix) {
 
 FileChooser::~FileChooser() {
   if (S == Sync::BALANCE) {
+    if (GeneratorDepth != 0) {
+      std::cerr << "FATAL ERROR: Unbalanced scopes from generator with depth " << GeneratorDepth << "\n\n";
+      exit(-1);
+    }
     // often there's (at least) an end scope still sitting there, we
     // need to process it
     while (Pos < G.Choices.size())
       nextVal();
     if (FileDepth != 0) {
-      std::cerr << "FATAL ERROR: Unbalanced scopes with depth " << FileDepth << "\n\n";
+      std::cerr << "FATAL ERROR: Unbalanced scopes from file with depth " << FileDepth << "\n\n";
       exit(-1);
     }
   }
@@ -1024,7 +1032,7 @@ again:
     if (Verbose)
       std::cerr << "END: FileDepth is now " << FileDepth << "\n";
     if (S == Sync::BALANCE && FileDepth < 0) {
-      std::cerr << "FATAL ERROR: Negative nesting depth\n\n";
+      std::cerr << "FATAL ERROR: Negative nesting depth from file side\n\n";
       exit(-1);
     }
     ++Pos;
