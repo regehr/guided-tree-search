@@ -99,6 +99,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   std::string Str((char *)buf, buf_size);
   std::stringstream SS(Str);
   auto FG = new tree_guide::FileGuide;
+  FG->setSync(tree_guide::Sync::RESYNC);
   if (!FG->parseChoices(SS, Prefix)) {
     std::cerr << "ERROR: couldn't parse choices from:\n";
     std::cerr << SS.str();
@@ -164,8 +165,8 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     if (DEBUG_PLUGIN) {
       for (int i = 0; envp[i] != nullptr; ++i)
         std::cerr << envp[i] << " ";
+      std::cerr << "\n";
     }
-    std::cerr << "\n";
     auto res = execve(Generator.c_str(), argv, envp);
     // of course this line normally does not execute
     exit(res);
