@@ -1013,13 +1013,22 @@ FileChooser::~FileChooser() {
 }
 
 uint64_t FileChooser::nextVal() {
-again:
+ again:
+
+  // if we've exhausted the choice sequence from disk, we have no
+  // choice besides returning randomness
+  
   if (Pos >= G.Choices.size()) {
     if (Verbose)
-      std::cerr << "Choice sequence exhausted, returning counter\n";
+      std::cerr << "Choice sequence exhausted, returning randomness\n";
     return fullRange(*G.Rand.get());
   }
+
   auto r = G.Choices.at(Pos);
+
+  // next we give the file guide a chance to catch up with the scoping
+  // level of the generator
+  
   if (r.k == tree_guide::RecKind::START) {
     ++FileDepth;
     ++Pos;
@@ -1027,22 +1036,41 @@ again:
       std::cerr << "START: FileDepth is now " << FileDepth << "\n";
     goto again;
   }
+
   if (r.k == tree_guide::RecKind::END) {
     --FileDepth;
     if (Verbose)
       std::cerr << "END: FileDepth is now " << FileDepth << "\n";
-    if (S == Sync::BALANCE && FileDepth < 0) {
+    if (FileDepth < 0) {
       std::cerr << "FATAL ERROR: Negative nesting depth from file side\n\n";
       exit(-1);
     }
     ++Pos;
     goto again;
   }
+
   assert(r.k == tree_guide::RecKind::NUM);
-  ++Pos;
-  if (Verbose)
-    std::cerr << "Returning number: " << r.v << "\n";
-  return r.v;
+
+  // now that we have a number to return, we have three choices, where
+  // our overall goal us to force the two scope depths to line up
+
+  // already lined up -- no problem
+  if (FileDepth == GeneratorDepth) {
+    ++Pos;
+    if (Verbose)
+      std::cerr << "Returning number: " << r.v << "\n";
+    return r.v;
+  }
+
+  // we need to stall reads from the choice sequence from the file
+  if (FileDepth > GeneratorDepth) {
+  }
+
+  // we need to discard choices from the file
+  if (FileDepth < GeneratorDepth) {
+  }
+
+  assert(false);
 }
 
 uint64_t FileChooser::choose(uint64_t Choices) { return nextVal() % Choices; }
