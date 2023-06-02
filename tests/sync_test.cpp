@@ -54,13 +54,13 @@ int use_choices() {
       exit(-1);
     auto C = G.makeChooser();
     assert(C);
-    if (VERBOSE)
-      cout << "about to generate\n";
     auto Str = gen(*C, Depth);
     if (VERBOSE)
-      cout << "generated " << Str << "\n";
+      cout << "generated: " << Str << "\n";
     assert(Str == Generated.at(i));
     ++pass;
+    if (VERBOSE)
+      cout <<  "\n\n";
   }
   return pass;
 }
