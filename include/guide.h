@@ -869,10 +869,13 @@ public:
 class FileGuide : public Guide {
   friend FileChooser;
   std::vector<rec> Choices;
+  std::unique_ptr<std::mt19937_64> Rand;
 
 public:
-  inline FileGuide(uint64_t Seed) = delete;
-  inline FileGuide() {}
+  inline FileGuide(uint64_t Seed) {
+    Rand = std::make_unique<std::mt19937_64>(Seed);
+  }
+  inline FileGuide() : FileGuide(std::random_device{}()) {}
   inline ~FileGuide() {}
   inline std::unique_ptr<Chooser> makeChooser() override {
     return std::make_unique<FileChooser>(*this, tree_guide::Sync::BALANCE);
