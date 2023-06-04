@@ -199,7 +199,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   }
 
   std::remove(InFn.c_str());
-  //std::remove(OutFn.c_str());
+  std::remove(OutFn.c_str());
 
   if (DEBUG_PLUGIN) {
     std::cerr << "buffer:\n";
