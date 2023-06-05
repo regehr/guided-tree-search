@@ -122,34 +122,32 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   std::string InFn(std::tmpnam(nullptr));
   std::string OutFn(std::tmpnam(nullptr));
 
-  {
-    std::ofstream Outf(InFn, std::ios::binary);
-    if (!Outf.is_open()) {
-      std::cerr
-          << "ERROR: mutator plugin could not save a file for the generator\n";
-      exit(-1);
-    }
-    Outf << Prefix + tree_guide::StartMarker + "\n";
-    Outf << Prefix;
-    for (auto c : C1) {
-      switch (c.k) {
-      case tree_guide::RecKind::START:
-        Outf << "{";
-        break;
-      case tree_guide::RecKind::END:
-        Outf << "}";
-        break;
-      case tree_guide::RecKind::NUM:
-        Outf << c.v;
-        break;
-      default:
-        assert(false);
-      }
-      Outf << ",";
-    }
-    Outf << "\n" << Prefix + tree_guide::EndMarker + "\n";
-    Outf.close();
+  std::ofstream Outf(InFn, std::ios::binary);
+  if (!Outf.is_open()) {
+    std::cerr
+      << "ERROR: mutator plugin could not save a file for the generator\n";
+    exit(-1);
   }
+  Outf << Prefix + tree_guide::StartMarker + "\n";
+  Outf << Prefix;
+  for (auto c : C1) {
+    switch (c.k) {
+    case tree_guide::RecKind::START:
+      Outf << "{";
+      break;
+    case tree_guide::RecKind::END:
+      Outf << "}";
+      break;
+    case tree_guide::RecKind::NUM:
+      Outf << c.v;
+      break;
+    default:
+      assert(false);
+    }
+    Outf << ",";
+  }
+  Outf << "\n" << Prefix + tree_guide::EndMarker + "\n";
+  Outf.close();
 
   auto pid = fork();
   if (pid == -1) {
@@ -185,18 +183,15 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     exit(-1);
   }
 
-  std::streamsize amount;
-  {
-    std::ifstream Inf(OutFn, std::ios::binary);
-    if (!Inf.is_open()) {
-      std::cerr << "ERROR: mutator plugin could not load file written by the "
-                   "generator\n";
-      exit(-1);
-    }
-    Inf.read((char *)data->mutated_out, MAX_FILE);
-    amount = Inf.gcount();
-    Inf.close();
+  std::ifstream Inf(OutFn, std::ios::binary);
+  if (!Inf.is_open()) {
+    std::cerr << "ERROR: mutator plugin could not load file written by the "
+      "generator\n";
+    exit(-1);
   }
+  Inf.read((char *)data->mutated_out, MAX_FILE);
+  std::streamsize amount = Inf.gcount();
+  Inf.close();
 
   std::remove(InFn.c_str());
   std::remove(OutFn.c_str());
@@ -208,7 +203,6 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   }
 
   *out_buf = data->mutated_out;
-  // return strlen((char *)data->mutated_out);
   return amount;
 }
 

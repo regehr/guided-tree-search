@@ -50,14 +50,11 @@ int main() {
     go(G);
   }
   {
-    auto G1 = new DefaultGuide();
-    auto G2 = new BFSGuide();
-    auto G3 = new WeightedSamplerGuide();
-    RRGuide G4({G1, G2, G3});
+    DefaultGuide G1;
+    BFSGuide G2;
+    WeightedSamplerGuide G3;;
+    RRGuide G4({&G1, &G2, &G3});
     go(G4);
-    delete G1;
-    delete G2;
-    delete G3;
   }
   return 0;
 }

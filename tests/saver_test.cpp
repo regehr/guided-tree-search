@@ -37,11 +37,11 @@ void save_choices() {
     out.open(fn);
     assert(out.is_open());
     out << Str << "\n\n";
-    out << C2->formatChoices();
+    out << formatChoices(C2->getChoices(), C2->getPrefix());
     out << "\n";
     if (VERBOSE) {
       cout << fn << " : " << Str << "\n\n";
-      cout << C2->formatChoices();
+      cout << formatChoices(C2->getChoices(), C2->getPrefix());
       cout << "\n";
     }
     out.close();

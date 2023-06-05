@@ -31,7 +31,7 @@ void make_choices() {
     assert(C2);
     auto S1 = gen(*C2, Depth);
     Generated.push_back(S1);
-    auto S2 = C2->formatChoices();
+    auto S2 = formatChoices(C2->getChoices(), C2->getPrefix());
     Choices.push_back(S2);
     if (VERBOSE) {
       cout << i << ":\n";
@@ -63,7 +63,6 @@ void printChoices(const vector<rec> &C) {
 
 int use_choices() {
   int pass = 0;
-  mutator::init(std::random_device{}());
   for (int i = 0; i < N; ++i) {
     long Depth = 1 + (i % MaxDepth);
     FileGuide FG;

@@ -10,7 +10,7 @@ namespace mutator {
 
 static std::unique_ptr<std::mt19937_64> Rand;
 
-void init(long Seed) { Rand = std::make_unique<std::mt19937_64>(Seed); }
+void init_with_seed(long Seed) { Rand = std::make_unique<std::mt19937_64>(Seed); }
 
 static void change_one(std::vector<rec> &C) {
   std::uniform_int_distribution<uint64_t> FullDist(
@@ -28,6 +28,8 @@ static void change_one(std::vector<rec> &C) {
 }
 
 void mutate_choices(std::vector<rec> &C) {
+  if (!Rand)
+    init_with_seed(std::random_device{}());
   std::uniform_int_distribution<uint64_t> CoinDist(0, 1);
   do {
     change_one(C);
