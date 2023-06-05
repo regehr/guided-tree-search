@@ -98,23 +98,23 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
                                   size_t max_size) {
   std::string Str((char *)buf, buf_size);
   std::stringstream SS(Str);
-  auto FG = new tree_guide::FileGuide;
-  FG->setSync(tree_guide::Sync::RESYNC);
-  if (!FG->parseChoices(SS, Prefix)) {
+  tree_guide::FileGuide FG;
+  FG.setSync(tree_guide::Sync::RESYNC);
+  if (!FG.parseChoices(SS, Prefix)) {
     std::cerr << "ERROR: couldn't parse choices from:\n";
     std::cerr << SS.str();
     std::cerr << "--------------------------\n\n";
     exit(-1);
   }
-  auto C1 = FG->getChoices();
+  auto C1 = FG.getChoices();
   if (DEBUG_PLUGIN)
     std::cerr << "parsed " << C1.size() << " choices\n";
   mutator::mutate_choices(C1);
   if (DEBUG_PLUGIN)
     std::cerr << "mutated\n";
-  FG->replaceChoices(C1);
+  FG.replaceChoices(C1);
 
-  tree_guide::SaverGuide SG(FG, Prefix);
+  tree_guide::SaverGuide SG(&FG, Prefix);
   auto Ch = SG.makeChooser();
   auto Ch2 = static_cast<tree_guide::SaverChooser *>(Ch.get());
   assert(Ch2);
