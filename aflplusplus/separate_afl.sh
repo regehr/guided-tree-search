@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rm -rf out/*
+rm -rf out*
 
 export AFL_DEBUG_CHILD=1
 export FILEGUIDE_COMMENT_PREFIX=\;\ 
@@ -12,17 +12,16 @@ NPROC=`nproc`
 CMD=$HOME/llvm-project/build-for-afl/bin/llc
 CMDARGS='-mcpu=skx'
 
-AFLARGS='-V 86400 -i ./in -o out'
-
-$HOME/AFLplusplus/afl-fuzz $AFLARGS -M f0 -- $CMD $ARGS @@ -o /dev/null &
+AFLARGS='-V 86400 -i ./in'
 
 export AFL_NO_UI=1
 export AFL_QUIET=1
 
-for (( i=1; i<$NPROC; i++ ))
+for (( i=0; i<$NPROC; i++ ))
 do
     echo $i
-    $HOME/AFLplusplus/afl-fuzz $AFLARGS -S f${i} -- $CMD $ARGS @@ -o /dev/null &
+    mkdir out${n}
+    $HOME/AFLplusplus/afl-fuzz $AFLARGS -o out${i} -- $CMD $ARGS @@ -o /dev/null &
 done
 
 
