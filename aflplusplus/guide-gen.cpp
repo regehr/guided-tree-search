@@ -24,7 +24,7 @@ struct my_mutator {
   u8 *mutated_out, *post_process_buf, *trim_buf;
 };
 
-std::string Prefix, Generator;
+std::string Prefix, Generator, ExtraCommand;
 
 static std::string getEnvVar(std::string const &var) {
   char const *val = getenv(var.c_str());
@@ -33,6 +33,8 @@ static std::string getEnvVar(std::string const &var) {
 
 extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
   mutator::init(seed);
+
+  ExtraCommand = getEnvVar("FILEGUIDE_EXTRA_COMMAND");
 
   Prefix = getEnvVar("FILEGUIDE_COMMENT_PREFIX");
   if (Prefix.empty()) {
@@ -99,7 +101,8 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   std::string Str((char *)buf, buf_size);
   std::stringstream SS(Str);
   tree_guide::FileGuide FG;
-  FG.setSync(tree_guide::Sync::RESYNC);
+  //FG.setSync(tree_guide::Sync::RESYNC);
+  FG.setSync(tree_guide::Sync::NONE);
   if (!FG.parseChoices(SS, Prefix)) {
     std::cerr << "ERROR: couldn't parse choices from:\n";
     std::cerr << SS.str();
@@ -151,12 +154,12 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
     Outf.close();
   }
 
-  auto pid = fork();
-  if (pid == -1) {
+  auto pid1 = fork();
+  if (pid1 == -1) {
     std::cerr << "ERROR: fork failed\n";
     exit(-1);
   }
-  if (pid == 0) {
+  if (pid1 == 0) {
     // child
     char *argv[] = {(char *)Generator.c_str(), nullptr};
     auto env1 = "FILEGUIDE_INPUT_FILE=" + InFn;
@@ -174,7 +177,7 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
 
   // parent
   int wstatus;
-  waitpid(pid, &wstatus, 0);
+  waitpid(pid1, &wstatus, 0);
   if (!WIFEXITED(wstatus)) {
     std::cerr << "ERROR: child exited abnormally\n";
     exit(-1);
@@ -183,6 +186,40 @@ extern "C" size_t afl_custom_fuzz(my_mutator *data, uint8_t *buf,
   if (ret != 0) {
     std::cerr << "ERROR: child did not return 0\n";
     exit(-1);
+  }
+
+  if (!ExtraCommand.empty()) {
+    auto pid2 = fork();
+    if (pid2 == -1) {
+      std::cerr << "ERROR: fork failed\n";
+      exit(-1);
+    }
+    if (pid2 == 0) {
+      // child
+
+      // it seems like it would be a nice thing to do to shut down the
+      // shared memory window before we exec the outside code, but
+      // this function invocation crashes, for whatever reason
+      // afl_shm_deinit(&data->afl->shm);
+
+      auto res = execl(ExtraCommand.c_str(), ExtraCommand.c_str(), OutFn.c_str(), (char *)nullptr);
+      // of course this line normally does not execute
+      exit(res);
+    }
+    // wait for the child process -- this keeps total machine load to
+    // a predictable factor and also prevents the plugin from removing
+    // the temp file while the second child is still looking at it
+    int wstatus;
+    waitpid(pid2, &wstatus, 0);
+    if (!WIFEXITED(wstatus)) {
+      std::cerr << "ERROR: child2 exited abnormally\n";
+      exit(-1);
+    }
+    auto ret = WEXITSTATUS(wstatus);
+    if (ret != 0) {
+      std::cerr << "ERROR: child2 did not return 0\n";
+      exit(-1);
+    }
   }
 
   std::streamsize amount;
