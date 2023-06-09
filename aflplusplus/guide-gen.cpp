@@ -32,8 +32,6 @@ static std::string getEnvVar(std::string const &var) {
 }
 
 extern "C" my_mutator *afl_custom_init(afl_state_t *afl, unsigned int seed) {
-  mutator::init(seed);
-
   Prefix = getEnvVar("FILEGUIDE_COMMENT_PREFIX");
   if (Prefix.empty()) {
     std::cerr << "\nERROR: Expected comment string in env var called "
