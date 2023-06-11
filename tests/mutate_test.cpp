@@ -8,8 +8,6 @@
 
 #include "guide.h"
 
-long tree_guide::Discard, tree_guide::Fillin;
-
 #include "gen_regex.h"
 #include "mutate.h"
 
@@ -53,8 +51,6 @@ static std::string::size_type LevDist(const std::string &src, const std::string 
 
 static void go1(Sync S) {
   double total_dist = 0;
-  tree_guide::Discard = 0;
-  tree_guide::Fillin = 0;
   for (int i = 0; i < N; ++i) {
     DefaultGuide DG;
     SaverGuide SG(&DG, Prefix);
@@ -78,13 +74,10 @@ static void go1(Sync S) {
     total_dist += d;
   }
   cout << "average distance = " << (total_dist / N) << "\n";
-  cout << "Discard = " << Discard << ", Fillin = " << Fillin << "\n";
 }
 
 static void go2() {
   double total_dist = 0;
-  tree_guide::Discard = 0;
-  tree_guide::Fillin = 0;
   for (int i = 0; i < N; ++i) {
     DefaultGuide DG;
     long Depth = 1 + (i % MaxDepth);

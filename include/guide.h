@@ -14,8 +14,6 @@
 
 namespace tree_guide {
 
-extern long Discard, Fillin;
-  
 static const bool Verbose = false;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1126,7 +1124,6 @@ again:
     auto v = fullRange(*G.Rand.get());
     if (Verbose)
       std::cerr << "Avoiding saved choice and returning random: " << v << "\n";
-    ++Fillin;
     return v;
   }
 
@@ -1135,7 +1132,6 @@ again:
     if (Verbose)
       std::cerr << "Discarding saved choice\n";
     ++Pos;
-    ++Discard;
     goto again;
   }
 
