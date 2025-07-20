@@ -461,6 +461,154 @@ uint64_t BFSChooser::chooseUnimportant() { return fullRange(*G.Rand.get()); }
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
+ * EnumeratingGuide: exhaustive depth-first exploration of the decision
+ * tree. This guide should typically be used when the search space is
+ * small enough to be fully explored.
+ */
+
+class EnumeratingChooser;
+
+class EnumeratingGuide : public Guide {
+  friend EnumeratingChooser;
+  /// The last choices made in the decision tree.
+  std::vector<uint64_t> LastPath;
+  /// The number of choices at each level for the last path.
+  std::vector<uint64_t> NumChoices;
+  /// Has any chooser been created yet?
+  bool Started = false;
+  /// Is there an existing chooser that is currently making choices?
+  bool Choosing = false;
+  uint64_t TotalNodes = 0;
+
+public:
+  inline EnumeratingGuide() : LastPath(), NumChoices() {};
+  inline ~EnumeratingGuide() {}
+  inline std::unique_ptr<Chooser> makeChooser() override;
+  inline const std::string name() override { return "Enumerating"; }
+};
+
+class EnumeratingChooser : public Chooser {
+  friend EnumeratingGuide;
+  EnumeratingGuide &G;
+
+  uint64_t Level = 0;
+  /// The choices that are made at each level.
+  /// It is first initialized with the choices that this chooser has to make at
+  /// the first levels, and then it is updated with the new choices that are
+  /// made at each level.
+  std::vector<uint64_t> CurrentPath;
+  /// The number of choices at each level.
+  /// It is first initialized with the known number of choices that this
+  /// chooser has for the first levels, and then it is updated with the number
+  /// of choices that are available at each new level.
+  std::vector<uint64_t> NumChoices;
+  inline uint64_t chooseInternal(uint64_t NumChoices);
+
+public:
+  inline EnumeratingChooser(EnumeratingGuide &_G,
+                            std::vector<uint64_t> CurrentPath,
+                            std::vector<uint64_t> NumChoices)
+      : G(_G), Level(0), CurrentPath(std::move(CurrentPath)),
+        NumChoices(std::move(NumChoices)) {}
+  inline ~EnumeratingChooser();
+  inline uint64_t choose(uint64_t Choices) override;
+  inline bool flip() override { return choose(2); }
+  inline uint64_t chooseWeighted(const std::vector<double> &) override;
+  inline uint64_t chooseWeighted(const std::vector<uint64_t> &) override;
+  inline uint64_t chooseUnimportant() override;
+  inline void beginScope() override {}
+  inline void endScope() override {}
+};
+
+std::unique_ptr<Chooser> EnumeratingGuide::makeChooser() {
+  if (Verbose)
+    std::cout << "*** START *** (total nodes = " << TotalNodes << ")\n";
+  assert(!Choosing && "A chooser is already constructed");
+
+  auto NextPath = LastPath;
+  for (int i = (int)LastPath.size() - 1; i >= 0; i--) {
+    if (NextPath[i] == NumChoices[i] - 1) {
+      NextPath.pop_back();
+      continue;
+    }
+    NextPath[i]++;
+    break;
+  }
+  std::vector<uint64_t> NextNumChoices(NumChoices.begin(),
+                                       NumChoices.begin() + NextPath.size());
+
+  if (Started && NextPath.empty()) {
+    if (Verbose)
+      std::cout << "  Tree has been completely explored!\n";
+    return nullptr;
+  }
+
+  if (!Started) {
+    if (Verbose)
+      std::cout << "  First traversal\n";
+    Started = true;
+  }
+
+  Choosing = true;
+  auto C =
+      std::make_unique<EnumeratingChooser>(*this, NextPath, NextNumChoices);
+  return C;
+}
+
+EnumeratingChooser::~EnumeratingChooser() {
+  G.LastPath = CurrentPath;
+  G.NumChoices = NumChoices;
+  G.Choosing = false;
+  G.TotalNodes++;
+}
+
+uint64_t EnumeratingChooser::chooseInternal(const uint64_t Choices) {
+  assert(G.Choosing);
+  if (Level < NumChoices.size()) {
+    if (Choices != NumChoices[Level]) {
+      std::cout << "FATAL ERROR: Reached same node again, but different "
+                   "number of choices this time\n\n";
+      exit(-1);
+    }
+    uint64_t Choice = CurrentPath[Level];
+    if (Verbose)
+      std::cout << "  Returning choice " << Choice << " at level " << Level
+                << "\n";
+    Level++;
+    return CurrentPath[Level - 1];
+  }
+
+  NumChoices.push_back(Choices);
+  CurrentPath.push_back(0);
+  if (Verbose)
+    std::cout << "  Adding new level " << Level << " with " << Choices
+              << " choices\n";
+  Level++;
+  return 0;
+}
+
+uint64_t EnumeratingChooser::choose(uint64_t Choices) {
+  return chooseInternal(Choices);
+}
+
+uint64_t EnumeratingChooser::chooseWeighted(const std::vector<double> &Probs) {
+  return chooseInternal(Probs.size());
+}
+
+uint64_t
+EnumeratingChooser::chooseWeighted(const std::vector<uint64_t> &Probs) {
+  return chooseInternal(Probs.size());
+}
+
+uint64_t EnumeratingChooser::chooseUnimportant() {
+  std::cerr
+      << "  EnumeratingChooser::chooseUnimportant() is not implemented.\n";
+  exit(1);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/*
  * WeightedSamplerChooser: tries to explore subtrees of the decision
  * tree in an intelligent fashion using techniques resembling
  * cardinality estimation
